@@ -39,7 +39,7 @@ void ALandDynamicMeshActor::GenerateLand(const TArray<FHexTile>& Array, const FR
 	
 	for (const auto& Tile : Array)
 	{
-		AddHexTile(Tile.WorldPosition, Tile.Height, HexRotator, GridSize);
+		AddHexTile(Tile.WorldPosition, Tile.NoiseHeight, HexRotator, GridSize);
 	}
 
 	FGeometryScriptSolidifyOptions SolidifyOptions;

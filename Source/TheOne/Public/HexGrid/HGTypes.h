@@ -15,6 +15,42 @@ enum class EHTileOrientationFlag : uint8
 	NONE
 };
 
+UENUM(BlueprintType)
+enum class EHTileRandomType : uint8
+{
+	NONE,
+	NOISE UMETA(DisplayName = "噪声"),
+	RDHeightArea UMETA(DisplayName = "随机高度区块"),
+};
+
+USTRUCT(BlueprintType)
+struct FRDHeightAreaConfig
+{
+	GENERATED_BODY()
+
+	FRDHeightAreaConfig(): AreaRadius(0), CoreCount(0), CoreMinDistance(0), MinRadius(0), MaxRadius(0), EmptyWeight(0)
+	{
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="区块生成范围半径"))
+	int AreaRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="区块数量"))
+	int CoreCount;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="区块核心间最小距离"))
+	int CoreMinDistance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="区块范围最小半径"))
+	int MinRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="区块范围最大半径"))
+	int MaxRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="区块内空地概率"))
+	float EmptyWeight;
+};
+
 
 /**
  * Information about the tile orientation, size and origin.
@@ -46,6 +82,9 @@ struct FHTileConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool BaseOnRadius{ false };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="地形随机算法"))
+	EHTileRandomType RandomType {EHTileRandomType::NONE};
 	
 	/**
 	 * Radius of the grid in "tiles", clamped [1, 25]
@@ -59,17 +98,26 @@ struct FHTileConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Column{1};
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="障碍物概率"))
 	float BlockWeight {0.f};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float BlockHeight {50.f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="是否离散分布Cost"))
+	bool bDiscreteCost {false};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,meta =(ClampMin = 1))
 	float MinCost {1.f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,meta =(ClampMin = 1))
 	float MaxCost {1.f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="是否启用Cost绘制高度"))
+	bool bCostToHeight {false};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="Cost高度缩放比例"))
+	float CostToHeightScale {1.f};
 };
 
 /**
@@ -161,7 +209,15 @@ struct FHCubeCoord
 
 	FString ToString() const
 	{
-		return QRS.ToString();
+		FString Ret;
+		Ret.Append("{");
+		Ret.Append(FString::FromInt(QRS.X));
+		Ret.Append(", ");
+		Ret.Append(FString::FromInt(QRS.Y));
+		Ret.Append(", ");
+		Ret.Append(FString::FromInt(QRS.Z));
+		Ret.Append("}");
+		return Ret;
 	}
 };
 

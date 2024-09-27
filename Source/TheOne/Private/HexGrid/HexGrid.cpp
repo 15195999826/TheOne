@@ -49,39 +49,94 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 
 	// 世界坐标
 	auto TileLocation = HexToWorld(CCoord);
-	auto Noise = FastNoiseWrapper->GetNoise2D(TileLocation.X, TileLocation.Y);
-
-	if (Noise > 1.f || Noise < -1.f)
-	{
-		UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
-		Noise = 1.f;
-	}
-	else if (Noise < -1.f)
-	{
-		UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
-		Noise = -1.f;
-	}
-
-	// 将Noise值映射到TileConfig.MinCost, TileConfig.MaxCost之间
-	// 将噪声值映射到0到1之间
-	float normalizedNoise = (Noise + 1) / 2;
-	// 使用线性插值将噪声值映射到TileConfig.MinCost和TileConfig.MaxCost之间
-	float Cost = FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise);
 	// 随机block (Weight表示成为障碍物的概率)
 	bool IsBlocking = TileConfig.BlockWeight <= 0.f ? false : TileConfig.BlockWeight >= RandomStream.FRandRange(0.0f, 1.0f);
+	
+	float Cost = TileConfig.MinCost;
+	float NoiseHeight = IsBlocking?TileConfig.BlockHeight:Cost;
+	switch (TileConfig.RandomType) {
+		case EHTileRandomType::NONE:
+			{
+				// 直接在TileConfig.MinCost和TileConfig.MaxCost之间随机
+				if (TileConfig.bDiscreteCost)
+				{
+					Cost = FMath::RoundToInt(RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost));
+				}
+				else
+				{
+					Cost = RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost);
+				}
+				NoiseHeight = IsBlocking?TileConfig.BlockHeight:Cost;
+			}
+			break;
+		case EHTileRandomType::NOISE:
+			{
+				auto Noise = FastNoiseWrapper->GetNoise2D(TileLocation.X, TileLocation.Y);
+
+				if (Noise > 1.f || Noise < -1.f)
+				{
+					UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
+					Noise = 1.f;
+				}
+				else if (Noise < -1.f)
+				{
+					UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
+					Noise = -1.f;
+				}
+
+				// 将Noise值映射到TileConfig.MinCost, TileConfig.MaxCost之间
+				// 将噪声值映射到0到1之间
+				float normalizedNoise = (Noise + 1) / 2;
+				// 使用线性插值将噪声值映射到TileConfig.MinCost和TileConfig.MaxCost之间
+				if (TileConfig.bDiscreteCost)
+				{
+					Cost = FMath::RoundToInt(FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise));
+				}
+				else
+				{
+					Cost = FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise);
+				}
+				
+				NoiseHeight = IsBlocking?TileConfig.BlockHeight:Noise * NoiseScale;
+			}
+			break;
+		case EHTileRandomType::RDHeightArea:
+			{
+				if (RdHeightAreaCoords.Contains(CCoord))
+				{
+					// 这里是高地
+					Cost = TileConfig.MaxCost;
+					NoiseHeight = TileConfig.MaxCost;
+				}
+				else
+				{
+					Cost = TileConfig.MinCost;
+					NoiseHeight = IsBlocking?TileConfig.BlockHeight:Cost;
+				}
+			}
+			break;
+	}
+	
+	check(Cost >= 1.f);
 	// 创建HexTile
 	FHexTile Tile;
 	Tile.CubeCoord = CCoord;
 	Tile.WorldPosition = TileLocation;
 	Tile.Cost = Cost;
 	Tile.bIsBlocking = IsBlocking;
-	Tile.Height = IsBlocking? TileConfig.BlockHeight : Noise * NoiseScale;
-	// UE_LOG(LogHexGrid, Log, TEXT("TileLocation: %s, Height: %f"), *TileLocation.ToString(), Tile.Height);
+	Tile.NoiseHeight = NoiseHeight;
+	// UE_LOG(LogHexGrid, Log, TEXT("Cost: %f, CCoord: %s"), Cost, *CCoord.ToString());
 	GridTiles.Add(Tile);
 	
 	// 目前默认的Tile的Mesh是以100为标准制作的， 因此这里按照100进行缩放
 	// Block的设置Z的Scale为BlockHeight， 普通区块设置为Cost * 2.f
-	auto ScaleZ = IsBlocking ? TileConfig.BlockHeight : Cost * 2.f;
+	float ScaleZ = 1.f;
+	if (TileConfig.bCostToHeight)
+	{
+		ScaleZ = IsBlocking ? TileConfig.BlockHeight : (Cost - 1) * TileConfig.CostToHeightScale;
+		ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
+	}
+	
 	auto ScaleXY = TileConfig.TileSize / DefaultHexMeshSize;
 	auto Transform = FTransform(Offset, TileLocation, FVector(ScaleXY, ScaleXY, ScaleZ));
 	auto Index = HexGridBound->AddInstance(Transform, true);
@@ -152,6 +207,62 @@ void AHexGrid::CreateGrid()
 		FastNoiseSetting.CellularDistanceFunction,
 		FastNoiseSetting.CellularReturnType
 		);
+	
+	RdHeightAreaCoords.Empty();
+	if (TileConfig.RandomType == EHTileRandomType::RDHeightArea)
+	{
+		const TArray<FHCubeCoord>& AreaCorePossibleIndexes = GetRangeCoords(FHCubeCoord{FIntVector::ZeroValue}, RDHeightAreaConfig.AreaRadius);
+	
+		TArray<FHCubeCoord> AreaCorePositions;
+		for (int i = 0; i < RDHeightAreaConfig.CoreCount; ++i)
+		{
+			// 保证随机结果与AreaCorePositions中的点不重复，且距离大于等于CoreMinDistance
+			bool bIsValid = false;
+			int MaxTry = 100;
+			FHCubeCoord NewCore;
+
+			while (!bIsValid && MaxTry-- > 0)
+			{
+				// 随机选择一个可能的索引
+				int RandomIndex = FMath::RandRange(0, AreaCorePossibleIndexes.Num() - 1);
+				NewCore = AreaCorePossibleIndexes[RandomIndex];
+
+				bIsValid = true;
+				for (const auto& ExistingCore : AreaCorePositions)
+				{
+					if (GetDistance(NewCore, ExistingCore) < RDHeightAreaConfig.CoreMinDistance)
+					{
+						bIsValid = false;
+						break;
+					}
+				}
+			}
+
+			if (bIsValid)
+			{
+				AreaCorePositions.Add(NewCore);
+			}
+		}
+
+		
+
+		for (const auto& Core : AreaCorePositions)
+		{
+			// 随机半径
+			int Radius = FMath::RandRange(RDHeightAreaConfig.MinRadius, RDHeightAreaConfig.MaxRadius);
+			auto AreaCoords = GetRangeCoords(Core, Radius);
+			for (const auto& Coord : AreaCoords)
+			{
+				// 随机是否空地
+				if (FMath::FRand() < RDHeightAreaConfig.EmptyWeight)
+				{
+					continue;
+				}
+
+				RdHeightAreaCoords.AddUnique(Coord);
+			}
+		}
+	}
 	
 	// https://www.unrealengine.com/en-US/blog/optimizing-tarray-usage-for-performance
 	// preallocate array memory
@@ -364,38 +475,32 @@ FHCubeCoord AHexGrid::GetNeighbor(const FHCubeCoord &H, const FHCubeCoord &Dir)
 	return H + Dir;
 }
 
+TArray<FHCubeCoord> AHexGrid::GetRangeCoords(const FHCubeCoord& Center, int32 Radius) const
+{
+	TArray<FHCubeCoord> Result;
+
+	for (int32 dq = -Radius; dq <= Radius; ++dq)
+	{
+		for (int32 dr = FMath::Max(-Radius, -dq - Radius); dr <= FMath::Min(Radius, -dq + Radius); ++dr)
+		{
+			int32 ds = -dq - dr;
+			Result.Add(FHCubeCoord{FIntVector(Center.QRS.X + dq, Center.QRS.Y + dr, Center.QRS.Z + ds)});
+		}
+	}
+	return Result;
+}
+
 TArray<FHexTile> AHexGrid::GetRange(const FHCubeCoord& Center, int32 Radius)
 {
 	TArray<FHexTile> Result;
 
-	if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
+	const TArray<FHCubeCoord>& Coords = GetRangeCoords(Center, Radius);
+	for (const auto& Coord : Coords)
 	{
-		for (int32 dq = -Radius; dq <= Radius; ++dq)
+		auto Index = GetHexTileIndex(Coord);
+		if (Index != INDEX_NONE)
 		{
-			for (int32 dr = FMath::Max(-Radius, -dq - Radius); dr <= FMath::Min(Radius, -dq + Radius); ++dr)
-			{
-				auto Coord =FHCubeCoord{FIntVector(Center.QRS.X + dq, Center.QRS.Y + dr, Center.QRS.Z)};
-				auto Index = GetHexTileIndex(Coord);
-				if (Index != INDEX_NONE)
-				{
-					Result.Add(GridTiles[Index]);
-				}
-			}
-		}
-	} else if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
-	{
-		for (int32 dq = -Radius; dq <= Radius; ++dq)
-		{
-			for (int32 dr = FMath::Max(-Radius, -dq - Radius); dr <= FMath::Min(Radius, -dq + Radius); ++dr)
-			{
-				int32 ds = -dq - dr;
-				auto Coord = FHCubeCoord{FIntVector(Center.QRS.X + dq, Center.QRS.Y + dr, Center.QRS.Z + ds)};
-				auto Index = GetHexTileIndex(Coord);
-				if (Index != INDEX_NONE)
-				{
-					Result.Add(GridTiles[Index]);
-				}
-			}
+			Result.Add(GridTiles[Index]);
 		}
 	}
 	

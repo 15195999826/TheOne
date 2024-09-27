@@ -43,8 +43,11 @@ struct FHexTile
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
 	bool bIsBlocking{};
 
+	/**
+	 * 噪声映射后的高度, 与Cost无关
+	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
-	float Height{0.f};
+	float NoiseHeight{0.f};
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
 	bool HasAIBooked{false};
@@ -165,6 +168,9 @@ public:
 	FHTileConfig TileConfig{};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	FRDHeightAreaConfig RDHeightAreaConfig{};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	FTheOneFastNoiseSetting FastNoiseSetting;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
@@ -180,6 +186,9 @@ protected:
 	UPROPERTY()
 	UFastNoiseWrapper* FastNoiseWrapper;
 
+	// 仅用于保存高度核心随机结果
+	TArray<FHCubeCoord> RdHeightAreaCoords;
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector MouseHitLocation;
 
@@ -190,6 +199,7 @@ protected:
 	int MouseHitColumn;
 
 	FHexTile EmptyHexTile;
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -268,6 +278,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
 	FHCubeCoord GetNeighbor(const FHCubeCoord &H, const FHCubeCoord &Dir);
 
+	TArray<FHCubeCoord> GetRangeCoords(const FHCubeCoord& Center, int32 Radius) const;
+	
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
 	TArray<FHexTile> GetRange(const FHCubeCoord& Center, int32 Radius);
 
