@@ -33,7 +33,6 @@ int AHexGrid::GetDistance(const FHCubeCoord& A, const FHCubeCoord& B)
 void AHexGrid::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -45,8 +44,7 @@ void AHexGrid::Tick(float DeltaTime)
 void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream, int32 Q, int32 R)
 {
 	FHCubeCoord CCoord{FIntVector(Q, R, -Q - R)};
-	// GridCoordinates.Add(CCoord);
-
+	// Todo: 线框模式， 只绘制线框
 	// 世界坐标
 	auto TileLocation = HexToWorld(CCoord);
 	// 随机block (Weight表示成为障碍物的概率)
@@ -62,13 +60,8 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 				// 这里是高地
 				Height = TileConfig.MaxHeight;
 			}
-			else
-			{
-				Height = IsBlocking ? TileConfig.BlockHeight : TileConfig.MinHeight;
-			}
 			break;
 	}
-	
 	
 	float Cost = TileConfig.MinCost;
 	switch (TileConfig.CostRandomType) {
@@ -130,8 +123,11 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 	Tile.Cost = Cost;
 	Tile.bIsBlocking = IsBlocking;
 	Tile.Height = Height;
+	Tile.EnvironmentType = IsBlocking?EHTileEnvironmentType::OBSTACLE : Cost2Environment[FMath::RoundToInt(Cost)];
 	// UE_LOG(LogHexGrid, Log, TEXT("Cost: %f, CCoord: %s"), Cost, *CCoord.ToString());
 	GridTiles.Add(Tile);
+
+	const auto& Environment = Environments[Tile.EnvironmentType];
 	
 	// 目前默认的Tile的Mesh是以100为标准制作的， 因此这里按照100进行缩放
 	// Block的设置Z的Scale为BlockHeight， 普通区块设置为Cost * 2.f
@@ -141,7 +137,38 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 	auto ScaleXY = TileConfig.TileSize / DefaultHexMeshSize;
 	auto Transform = FTransform(Offset, TileLocation, FVector(ScaleXY, ScaleXY, ScaleZ));
 	auto Index = HexGridBound->AddInstance(Transform, true);
-	HexGridBound->SetCustomData(Index, DefaultCustomData);
+	TArray<float> CustomData {Environment.CustomData.R, Environment.CustomData.G, Environment.CustomData.B, Environment.CustomData.A};
+	HexGridBound->SetCustomData(Index, CustomData);
+
+	if (Environment.DecorationMesh.IsValid())
+	{
+		auto EnvironmentMesh = EnvironmentMeshes[Tile.EnvironmentType];
+		auto RDCount = RandomStream.RandRange(1, Environment.DecorationMaxCount);
+		for (int32 i = 0; i < RDCount; ++i)
+		{
+			FTransform ItemTransform;
+			if (Environment.bRandomDecorationRotation)
+			{
+				ItemTransform.SetRotation(FQuat(FRotator(0.f, RandomStream.FRandRange(0.f, 360.f), 0.f)));
+			}
+
+			if (Environment.bRandomDecorationLocation)
+			{
+				// 随机XY平面的位置， 范围是TileSize的一半
+				auto RandomX = RandomStream.FRandRange(-TileConfig.TileSize / 2.f, TileConfig.TileSize / 2.f);
+				auto RandomY = RandomStream.FRandRange(-TileConfig.TileSize / 2.f, TileConfig.TileSize / 2.f);
+				auto RandomLocation = FVector(RandomX, RandomY, 0.f);
+				ItemTransform.SetLocation(TileLocation + RandomLocation);
+			}
+			else
+			{
+				ItemTransform.SetLocation(TileLocation);
+			}
+
+			ItemTransform.SetScale3D(FVector(Environment.DecorationScale));
+			EnvironmentMesh->AddInstance(ItemTransform, true);
+		}
+	}
 }
 
 FRotator AHexGrid::GetGridRotator() const
@@ -187,13 +214,45 @@ void AHexGrid::CreateGrid()
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateGrid);
 
-	FRandomStream RandomStream{ RandomTheOne };
+	auto MeshComs = SceneRoot->GetAttachChildren();
+	TArray<UInstancedStaticMeshComponent*> MeshComsCache;
+	for (auto MeshCom : MeshComs)
+	{
+		if (auto Mesh = Cast<UInstancedStaticMeshComponent>(MeshCom))
+		{
+			Mesh->ClearInstances();
+			if (Mesh == HexGridBound)
+			{
+				continue;
+			}
+			MeshComsCache.Add(Mesh);
+		}
+	}
+	
+	EnvironmentMeshes.Empty();
 
-	DefaultCustomData.Empty();
-	DefaultCustomData.Add(DefaultColor.R);
-	DefaultCustomData.Add(DefaultColor.G);
-	DefaultCustomData.Add(DefaultColor.B);
-	DefaultCustomData.Add(DefaultColor.A);
+	int CacheCursor = 0;
+	// 初始化EnvironmentMeshes, 在蓝图中手动创建备用组件
+	for (const auto& Pair:Environments)
+	{
+		if (!Pair.Value.DecorationMesh.IsValid())
+		{
+			continue;
+		}
+
+		if (!MeshComsCache.IsValidIndex(CacheCursor))
+		{
+			UE_LOG(LogHexGrid, Error, TEXT("MeshComsCache is not enough"));
+			continue;
+		}
+
+		auto GetCom =  MeshComsCache[CacheCursor];
+		CacheCursor++;
+		GetCom->SetStaticMesh(Pair.Value.DecorationMesh.LoadSynchronous());
+		EnvironmentMeshes.Add(Pair.Key, GetCom);
+	}
+
+	FRandomStream RandomStream{ RandomTheOne };
 
 	// Todo: 先跑通网格-》地图-》移动的流程，再思考地图随机规则， 先用柏林噪声生成地图
 	FastNoiseWrapper = NewObject<UFastNoiseWrapper>();
@@ -273,8 +332,6 @@ void AHexGrid::CreateGrid()
 	// R4 = 1 + 6*1 + 6*2 + 6*3 + 6*4
 	// R5 = .......
 	GridTiles.Empty();
-	// GridCoordinates.Empty();
-	HexGridBound->ClearInstances();
 	
 	// int32 T = 1.1f; 不会报错 int32 T{1.1f} Ide就会报错
 	int32 Size{ 1 };
@@ -335,7 +392,6 @@ void AHexGrid::CreateGrid()
 			}
 		}
 	}
-
 
 	if (CreateMesh)
 	{

@@ -34,7 +34,10 @@ struct FHexTile
 	FVector WorldPosition {
 		FVector::ZeroVector
 	};
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
+	EHTileEnvironmentType EnvironmentType{EHTileEnvironmentType::PLAIN};
+	
 	/* Cost of the tile, for a well execution of the GraphAStar pathfinder it need to have a value of at least 1 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid", meta =(ClampMin = 1))
 	float Cost{};
@@ -123,15 +126,25 @@ UCLASS()
 class THEONE_API AHexGrid : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
-	AHexGrid();
 
+public:
 	inline static FRotator FlatRotator = FRotator(0.f, 0.f, 0.f);
 	inline static FRotator PointyRotator = FRotator(0.f, 30.f, 0.f);
 
 	static int GetDistance(const FHCubeCoord& A, const FHCubeCoord& B);
+	
+public:	
+	// Sets default values for this actor's properties
+	AHexGrid();
+protected:
+	UPROPERTY(VisibleDefaultsOnly)
+	TObjectPtr<USceneComponent> SceneRoot;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	TObjectPtr<UInstancedStaticMeshComponent> HexGridBound;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	TMap<EHTileEnvironmentType, TObjectPtr<UInstancedStaticMeshComponent>> EnvironmentMeshes;
 
 public:
 	UPROPERTY(BlueprintAssignable, BlueprintCallable)
@@ -147,11 +160,6 @@ public:
 
 	// UPROPERTY(BlueprintReadWrite)
 	// TMap<FHCubeCoord, int> GridCoordinates{};
-
-	// 默认颜色
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
-	FLinearColor DefaultColor{FLinearColor::Green};
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	int32 RandomTheOne;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
@@ -172,17 +180,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	FTheOneFastNoiseSetting FastNoiseSetting;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	TMap<int, EHTileEnvironmentType> Cost2Environment;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	TMap<EHTileEnvironmentType, FHTileEnvironment> Environments;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	float DefaultHexMeshSize{100.f};
 	
 protected:
-	UPROPERTY(VisibleDefaultsOnly)
-	TObjectPtr<USceneComponent> SceneRoot;
-
-	UPROPERTY(VisibleDefaultsOnly)
-	TObjectPtr<UInstancedStaticMeshComponent> HexGridBound;
-
 	UPROPERTY()
 	UFastNoiseWrapper* FastNoiseWrapper;
 
@@ -309,6 +317,4 @@ protected:
 	FHCubeCoord GetHexCoordByXY(int32 Row, int32 Column) const;
 private:
 	FHDirections HDirections{};
-
-	TArray<float> DefaultCustomData;
 };

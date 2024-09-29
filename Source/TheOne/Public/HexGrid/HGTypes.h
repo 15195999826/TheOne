@@ -7,6 +7,7 @@
  * Orientation of the tile
  * @see https://www.redblobgames.com/grids/hexagons/#basics
  */
+
 UENUM(BlueprintType)
 enum class EHTileOrientationFlag : uint8
 {
@@ -145,9 +146,6 @@ struct FHTileConfig
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="障碍物概率"))
 	float BlockWeight {0.f};
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float BlockHeight {50.f};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="是否离散分布Cost"))
 	bool bDiscreteCost {false};
@@ -349,7 +347,7 @@ struct FHTileOrientation
 {
 	GENERATED_USTRUCT_BODY()
 
-	FHTileOrientation()
+	FHTileOrientation(): f0(0), f1(0), f2(0), f3(0), b0(0), b1(0), b2(0), b3(0)
 	{
 	}
 
@@ -398,6 +396,49 @@ const struct FHPointyOrientation : FHTileOrientation
 	}
 
 }HPointyLayout;
+
+UENUM(BlueprintType)
+enum class EHTileEnvironmentType : uint8
+{
+	//平地
+	PLAIN UMETA(DisplayName="平地"),
+	GRASS UMETA(DisplayName="草地"),
+	FOREST UMETA(DisplayName="森林"),
+	// 障碍物
+	OBSTACLE UMETA(DisplayName="障碍物"),
+};
+
+// 格子环境
+USTRUCT(BlueprintType)
+struct FHTileEnvironment
+{
+	GENERATED_BODY()
+
+	FHTileEnvironment() {}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="环境名称"))
+	FText EnvironmentName;
+
+	// Todo: 临时使用颜色
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="Custom Data"))
+	FLinearColor CustomData;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="装饰物"))
+	TSoftObjectPtr<UStaticMesh> DecorationMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="装饰物随机数量上限", ClampMin = 1))
+	int32 DecorationMaxCount{1};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="装饰物缩放"))
+	float DecorationScale{1.f};
+
+	// 不随机则放置在中心
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="装饰物随机位置"))
+	bool bRandomDecorationLocation{false};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="装饰物随机旋转"))
+	bool bRandomDecorationRotation{false};
+};
 
 
 

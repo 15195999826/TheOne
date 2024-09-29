@@ -55,7 +55,7 @@ void ATheOneHexMapPlayerController::HideReleaseDistanceTips()
 		auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
 		for (const auto& HexIndex : TipsHexCache)
 		{
-			HexGrid->SetHexTileColor(HexIndex,HexGrid->DefaultColor, 0.f);
+			// HexGrid->SetHexTileColor(HexIndex,HexGrid->DefaultColor, 0.f);
 		}
 		TipsHexCache.Empty();
 	}
@@ -66,7 +66,7 @@ void ATheOneHexMapPlayerController::OnSelectedCharacterEnterNewCoord(const FHCub
 	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
 	for (const auto& HexIndex : TipsHexCache)
 	{
-		HexGrid->SetHexTileColor(HexIndex,HexGrid->DefaultColor, 0.f);
+		// HexGrid->SetHexTileColor(HexIndex,HexGrid->DefaultColor, 0.f);
 	}
 	TipsHexCache.Empty();
 	auto CurrentCoord = SelectedCharacter->GetCurrentHexCoord();
