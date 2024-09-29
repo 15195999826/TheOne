@@ -74,7 +74,6 @@ public:
 	UPROPERTY()
 	FHCubeCoord GoalCoord;
 
-
 protected:
 	/** parameters of move request */
 	UPROPERTY()

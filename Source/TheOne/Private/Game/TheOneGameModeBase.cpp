@@ -222,8 +222,7 @@ void ATheOneGameModeBase::StartPlay()
 		GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid = HexGrid;
 		break;
 	}	
-
-
+	
 	if (HexGrid)
 	{
 		HexGrid->CreateGrid();

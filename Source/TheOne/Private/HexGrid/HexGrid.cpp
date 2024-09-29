@@ -51,25 +51,30 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 	auto TileLocation = HexToWorld(CCoord);
 	// 随机block (Weight表示成为障碍物的概率)
 	bool IsBlocking = TileConfig.BlockWeight <= 0.f ? false : TileConfig.BlockWeight >= RandomStream.FRandRange(0.0f, 1.0f);
-	
-	float Cost = TileConfig.MinCost;
-	float NoiseHeight = IsBlocking?TileConfig.BlockHeight:Cost;
-	switch (TileConfig.RandomType) {
-		case EHTileRandomType::NONE:
+
+	float Height = TileConfig.MinHeight;
+	switch (TileConfig.HeightRandomType) {
+		case EHTileHeightRandomType::NONE:
+			break;
+		case EHTileHeightRandomType::RDHeightArea:
+			if (RdHeightAreaCoords.Contains(CCoord))
 			{
-				// 直接在TileConfig.MinCost和TileConfig.MaxCost之间随机
-				if (TileConfig.bDiscreteCost)
-				{
-					Cost = FMath::RoundToInt(RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost));
-				}
-				else
-				{
-					Cost = RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost);
-				}
-				NoiseHeight = IsBlocking?TileConfig.BlockHeight:Cost;
+				// 这里是高地
+				Height = TileConfig.MaxHeight;
+			}
+			else
+			{
+				Height = IsBlocking ? TileConfig.BlockHeight : TileConfig.MinHeight;
 			}
 			break;
-		case EHTileRandomType::NOISE:
+	}
+	
+	
+	float Cost = TileConfig.MinCost;
+	switch (TileConfig.CostRandomType) {
+		case EHTileCostRandomType::NONE:
+			break;
+		case EHTileCostRandomType::NOISE:
 			{
 				auto Noise = FastNoiseWrapper->GetNoise2D(TileLocation.X, TileLocation.Y);
 
@@ -96,22 +101,22 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 				{
 					Cost = FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise);
 				}
-				
-				NoiseHeight = IsBlocking?TileConfig.BlockHeight:Noise * NoiseScale;
+
+				// // 目前，噪声算法中，高度和Cost使用了一个噪声值，Todo: 考虑是否应该分开
+				//
+				// float NoiseHeight = FMath::Lerp(TileConfig.MinHeight, TileConfig.MaxHeight, normalizedNoise);
+				// Height = IsBlocking ? TileConfig.BlockHeight : NoiseHeight * NoiseScale;
 			}
 			break;
-		case EHTileRandomType::RDHeightArea:
+		case EHTileCostRandomType::SIMPLE:
 			{
-				if (RdHeightAreaCoords.Contains(CCoord))
+				if (TileConfig.bDiscreteCost)
 				{
-					// 这里是高地
-					Cost = TileConfig.MaxCost;
-					NoiseHeight = TileConfig.MaxCost;
+					Cost = FMath::RoundToInt(RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost));
 				}
 				else
 				{
-					Cost = TileConfig.MinCost;
-					NoiseHeight = IsBlocking?TileConfig.BlockHeight:Cost;
+					Cost = RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost);
 				}
 			}
 			break;
@@ -124,18 +129,14 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 	Tile.WorldPosition = TileLocation;
 	Tile.Cost = Cost;
 	Tile.bIsBlocking = IsBlocking;
-	Tile.NoiseHeight = NoiseHeight;
+	Tile.Height = Height;
 	// UE_LOG(LogHexGrid, Log, TEXT("Cost: %f, CCoord: %s"), Cost, *CCoord.ToString());
 	GridTiles.Add(Tile);
 	
 	// 目前默认的Tile的Mesh是以100为标准制作的， 因此这里按照100进行缩放
 	// Block的设置Z的Scale为BlockHeight， 普通区块设置为Cost * 2.f
-	float ScaleZ = 1.f;
-	if (TileConfig.bCostToHeight)
-	{
-		ScaleZ = IsBlocking ? TileConfig.BlockHeight : (Cost - 1) * TileConfig.CostToHeightScale;
-		ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
-	}
+	float ScaleZ =  (Height - 1) * TileConfig.RenderHeightScale;
+	ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
 	
 	auto ScaleXY = TileConfig.TileSize / DefaultHexMeshSize;
 	auto Transform = FTransform(Offset, TileLocation, FVector(ScaleXY, ScaleXY, ScaleZ));
@@ -186,6 +187,8 @@ void AHexGrid::CreateGrid()
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateGrid);
 
+	FRandomStream RandomStream{ RandomTheOne };
+
 	DefaultCustomData.Empty();
 	DefaultCustomData.Add(DefaultColor.R);
 	DefaultCustomData.Add(DefaultColor.G);
@@ -209,7 +212,7 @@ void AHexGrid::CreateGrid()
 		);
 	
 	RdHeightAreaCoords.Empty();
-	if (TileConfig.RandomType == EHTileRandomType::RDHeightArea)
+	if (TileConfig.HeightRandomType == EHTileHeightRandomType::RDHeightArea)
 	{
 		const TArray<FHCubeCoord>& AreaCorePossibleIndexes = GetRangeCoords(FHCubeCoord{FIntVector::ZeroValue}, RDHeightAreaConfig.AreaRadius);
 	
@@ -224,7 +227,7 @@ void AHexGrid::CreateGrid()
 			while (!bIsValid && MaxTry-- > 0)
 			{
 				// 随机选择一个可能的索引
-				int RandomIndex = FMath::RandRange(0, AreaCorePossibleIndexes.Num() - 1);
+				int RandomIndex = RandomStream.RandRange(0, AreaCorePossibleIndexes.Num() - 1);
 				NewCore = AreaCorePossibleIndexes[RandomIndex];
 
 				bIsValid = true;
@@ -243,18 +246,16 @@ void AHexGrid::CreateGrid()
 				AreaCorePositions.Add(NewCore);
 			}
 		}
-
 		
-
 		for (const auto& Core : AreaCorePositions)
 		{
 			// 随机半径
-			int Radius = FMath::RandRange(RDHeightAreaConfig.MinRadius, RDHeightAreaConfig.MaxRadius);
+			int Radius = RandomStream.RandRange(RDHeightAreaConfig.MinRadius, RDHeightAreaConfig.MaxRadius);
 			auto AreaCoords = GetRangeCoords(Core, Radius);
 			for (const auto& Coord : AreaCoords)
 			{
 				// 随机是否空地
-				if (FMath::FRand() < RDHeightAreaConfig.EmptyWeight)
+				if (RandomStream.FRand() < RDHeightAreaConfig.EmptyWeight)
 				{
 					continue;
 				}
@@ -287,8 +288,6 @@ void AHexGrid::CreateGrid()
 	GridTiles.Reserve(Size);
 
 	auto Offset = GetGridRotator();
-
-	FRandomStream RandomStream{ RandomTheOne };
 
 	if (TileConfig.BaseOnRadius)
 	{
@@ -697,6 +696,16 @@ FHexTile& AHexGrid::GetMutableHexTile(const FHCubeCoord& InCoord)
 
 	UE_LOG(LogHexGrid, Error, TEXT("[AHexGrid] GetMutableHexTile Failed, Return EmptyHexTile"));
 	return EmptyHexTile;
+}
+
+int AHexGrid::GetDistanceByIndex(int A, int B) const
+{
+	if (GridTiles.IsValidIndex(A) && GridTiles.IsValidIndex(B))
+	{
+		return GetDistance(GridTiles[A].CubeCoord, GridTiles[B].CubeCoord);
+	}
+
+	return INT_MAX;
 }
 
 void AHexGrid::SetHexTileColor(int Index, const FLinearColor& InColor, float NewHeight)

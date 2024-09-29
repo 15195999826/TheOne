@@ -44,10 +44,10 @@ struct FHexTile
 	bool bIsBlocking{};
 
 	/**
-	 * 噪声映射后的高度, 与Cost无关
+	 * Cost映射为地形， 而Height表示当前地块的高度
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
-	float NoiseHeight{0.f};
+	float Height{0.f};
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
 	bool HasAIBooked{false};
@@ -296,6 +296,8 @@ public:
 	const FHexTile& GetHexTile(const FHCubeCoord& InCoord);
 
 	FHexTile& GetMutableHexTile(const FHCubeCoord& InCoord);
+
+	int GetDistanceByIndex(int A, int B) const;
 
 	UFUNCTION(BlueprintCallable)
 	void SetHexTileColor(int Index, const FLinearColor& InColor, float NewHeight = 0.f);

@@ -16,11 +16,47 @@ enum class EHTileOrientationFlag : uint8
 };
 
 UENUM(BlueprintType)
-enum class EHTileRandomType : uint8
+enum class EHTileHeightRandomType : uint8
 {
-	NONE,
+	NONE UMETA(DisplayName = "无高度差"),
+	// NOISE UMETA(DisplayName = "噪声"), TODO: 噪声高度差，暂时没必要
+	RDHeightArea UMETA(DisplayName = "随机高度区块")
+};
+
+UENUM(BlueprintType)
+enum class EHTileCostRandomType : uint8
+{
+	NONE UMETA(DisplayName = "总是最小Cost"),
+	SIMPLE UMETA(DisplayName = "简单随机"),
 	NOISE UMETA(DisplayName = "噪声"),
-	RDHeightArea UMETA(DisplayName = "随机高度区块"),
+	// Todo: 增加一种，Cost（地形） 与高度相关的自定义随机算法
+};
+
+UENUM(BlueprintType)
+enum class EHAStarHeuristicCostType : uint8
+{
+	/** 最短路径， 总是返回1
+	 * 如果h(n)始终小于等于节点n到终点的代价，则A*算法保证一定能够找到最短路径。但是当h(n)的值越小，算法将遍历越多的节点，也就导致算法越慢。
+	 */
+	Nearest UMETA(DisplayName = "最短路径"),
+	// 使用六边形距离作为启发函数，可以更准确地估计从当前节点到目标节点的成本，从而更有可能找到最佳路径。
+	Manhattan UMETA(DisplayName = "曼哈顿距离"),
+	// 如果一定要找到最短路径，那么需要使得h(n)完全等于节点n到终点的代价，可惜的是，并非所有场景下都能做到这一点。因为在没有达到终点之前，我们很难确切算出距离终点还有多远。
+	// 但是当h(n)的值越接近节点n到终点的代价，A*算法的效率就越高， 获取最佳路径的可能性也就越大。
+	// 为此， 增加一个稍微优化一点方案， Manhattan + 终点格子的Cost
+	ManhattanAndCost UMETA(DisplayName = "曼哈顿距离+终点Cost"),
+};
+
+/**
+ * Cost type for A* traversal
+ */
+UENUM(BlueprintType)
+enum class EHAStarTraversalCostType : uint8
+{
+	//仅使用Tile本身的Cost
+	TileCost,
+	// 使用Tile本身的Cost + Tile之间高度差带来的Cost
+	TileAndHeightCost,
 };
 
 USTRUCT(BlueprintType)
@@ -83,8 +119,17 @@ struct FHTileConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool BaseOnRadius{ false };
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="地形随机算法"))
-	EHTileRandomType RandomType {EHTileRandomType::NONE};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EHAStarHeuristicCostType HeuristicCostType {EHAStarHeuristicCostType::Nearest};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EHAStarTraversalCostType TraversalCostType {EHAStarTraversalCostType::TileCost};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="地形高度随机算法"))
+	EHTileHeightRandomType HeightRandomType {EHTileHeightRandomType::NONE};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="Cost随机算法"))
+	EHTileCostRandomType CostRandomType {EHTileCostRandomType::NONE};
 	
 	/**
 	 * Radius of the grid in "tiles", clamped [1, 25]
@@ -113,11 +158,15 @@ struct FHTileConfig
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,meta =(ClampMin = 1))
 	float MaxCost {1.f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="是否启用Cost绘制高度"))
-	bool bCostToHeight {false};
+	// 地块的高度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,meta =(ClampMin = 1))
+	float MinHeight {1.f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,meta =(ClampMin = 1))
+	float MaxHeight {1.f};
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="Cost高度缩放比例"))
-	float CostToHeightScale {1.f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="高度缩放比例"))
+	float RenderHeightScale {1.f};
 };
 
 /**
