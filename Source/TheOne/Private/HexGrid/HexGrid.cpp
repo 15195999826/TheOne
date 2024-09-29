@@ -19,9 +19,12 @@ AHexGrid::AHexGrid()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+
+	HexGridWireframe = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("HexGridWireframe"));
+	HexGridWireframe->SetupAttachment(SceneRoot);
 	
-	HexGridBound = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("RegularHexTile"));
-	HexGridBound->SetupAttachment(SceneRoot);
+	HexGridLand = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("RegularHexTile"));
+	HexGridLand->SetupAttachment(SceneRoot);
 }
 
 int AHexGrid::GetDistance(const FHCubeCoord& A, const FHCubeCoord& B)
@@ -41,178 +44,10 @@ void AHexGrid::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream, int32 Q, int32 R)
-{
-	FHCubeCoord CCoord{FIntVector(Q, R, -Q - R)};
-	// Todo: 线框模式， 只绘制线框
-	// 世界坐标
-	auto TileLocation = HexToWorld(CCoord);
-	// 随机block (Weight表示成为障碍物的概率)
-	bool IsBlocking = TileConfig.BlockWeight <= 0.f ? false : TileConfig.BlockWeight >= RandomStream.FRandRange(0.0f, 1.0f);
-
-	float Height = TileConfig.MinHeight;
-	switch (TileConfig.HeightRandomType) {
-		case EHTileHeightRandomType::NONE:
-			break;
-		case EHTileHeightRandomType::RDHeightArea:
-			if (RdHeightAreaCoords.Contains(CCoord))
-			{
-				// 这里是高地
-				Height = TileConfig.MaxHeight;
-			}
-			break;
-	}
-	
-	float Cost = TileConfig.MinCost;
-	switch (TileConfig.CostRandomType) {
-		case EHTileCostRandomType::NONE:
-			break;
-		case EHTileCostRandomType::NOISE:
-			{
-				auto Noise = FastNoiseWrapper->GetNoise2D(TileLocation.X, TileLocation.Y);
-
-				if (Noise > 1.f || Noise < -1.f)
-				{
-					UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
-					Noise = 1.f;
-				}
-				else if (Noise < -1.f)
-				{
-					UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
-					Noise = -1.f;
-				}
-
-				// 将Noise值映射到TileConfig.MinCost, TileConfig.MaxCost之间
-				// 将噪声值映射到0到1之间
-				float normalizedNoise = (Noise + 1) / 2;
-				// 使用线性插值将噪声值映射到TileConfig.MinCost和TileConfig.MaxCost之间
-				if (TileConfig.bDiscreteCost)
-				{
-					Cost = FMath::RoundToInt(FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise));
-				}
-				else
-				{
-					Cost = FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise);
-				}
-
-				// // 目前，噪声算法中，高度和Cost使用了一个噪声值，Todo: 考虑是否应该分开
-				//
-				// float NoiseHeight = FMath::Lerp(TileConfig.MinHeight, TileConfig.MaxHeight, normalizedNoise);
-				// Height = IsBlocking ? TileConfig.BlockHeight : NoiseHeight * NoiseScale;
-			}
-			break;
-		case EHTileCostRandomType::SIMPLE:
-			{
-				if (TileConfig.bDiscreteCost)
-				{
-					Cost = FMath::RoundToInt(RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost));
-				}
-				else
-				{
-					Cost = RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost);
-				}
-			}
-			break;
-	}
-	
-	check(Cost >= 1.f);
-	// 创建HexTile
-	FHexTile Tile;
-	Tile.CubeCoord = CCoord;
-	Tile.WorldPosition = TileLocation;
-	Tile.Cost = Cost;
-	Tile.bIsBlocking = IsBlocking;
-	Tile.Height = Height;
-	Tile.EnvironmentType = IsBlocking?EHTileEnvironmentType::OBSTACLE : Cost2Environment[FMath::RoundToInt(Cost)];
-	// UE_LOG(LogHexGrid, Log, TEXT("Cost: %f, CCoord: %s"), Cost, *CCoord.ToString());
-	GridTiles.Add(Tile);
-
-	const auto& Environment = Environments[Tile.EnvironmentType];
-	
-	// 目前默认的Tile的Mesh是以100为标准制作的， 因此这里按照100进行缩放
-	// Block的设置Z的Scale为BlockHeight， 普通区块设置为Cost * 2.f
-	float ScaleZ =  (Height - 1) * TileConfig.RenderHeightScale;
-	ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
-	
-	auto ScaleXY = TileConfig.TileSize / DefaultHexMeshSize;
-	auto Transform = FTransform(Offset, TileLocation, FVector(ScaleXY, ScaleXY, ScaleZ));
-	auto Index = HexGridBound->AddInstance(Transform, true);
-	TArray<float> CustomData {Environment.CustomData.R, Environment.CustomData.G, Environment.CustomData.B, Environment.CustomData.A};
-	HexGridBound->SetCustomData(Index, CustomData);
-
-	if (Environment.DecorationMesh.IsValid())
-	{
-		auto EnvironmentMesh = EnvironmentMeshes[Tile.EnvironmentType];
-		auto RDCount = RandomStream.RandRange(1, Environment.DecorationMaxCount);
-		for (int32 i = 0; i < RDCount; ++i)
-		{
-			FTransform ItemTransform;
-			if (Environment.bRandomDecorationRotation)
-			{
-				ItemTransform.SetRotation(FQuat(FRotator(0.f, RandomStream.FRandRange(0.f, 360.f), 0.f)));
-			}
-
-			if (Environment.bRandomDecorationLocation)
-			{
-				// 随机XY平面的位置， 范围是TileSize的一半
-				auto RandomX = RandomStream.FRandRange(-TileConfig.TileSize / 2.f, TileConfig.TileSize / 2.f);
-				auto RandomY = RandomStream.FRandRange(-TileConfig.TileSize / 2.f, TileConfig.TileSize / 2.f);
-				auto RandomLocation = FVector(RandomX, RandomY, 0.f);
-				ItemTransform.SetLocation(TileLocation + RandomLocation);
-			}
-			else
-			{
-				ItemTransform.SetLocation(TileLocation);
-			}
-
-			ItemTransform.SetScale3D(FVector(Environment.DecorationScale));
-			EnvironmentMesh->AddInstance(ItemTransform, true);
-		}
-	}
-}
-
-FRotator AHexGrid::GetGridRotator() const
-{
-	if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
-	{
-		return FlatRotator;
-	}
-	else if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
-	{
-		return  PointyRotator;
-	}
-
-	return FRotator::ZeroRotator;
-}
-
-void AHexGrid::UpdateHitLocation(const FVector& InHitLocation)
-{
-	MouseHitLocation = InHitLocation;
-
-	if (TileConfig.BaseOnRadius)
-	{
-		MouseHitColumn = 0;
-		MouseHitRow = 0;
-	}
-	else
-	{
-		auto HexCoord = WorldToHex(InHitLocation);
-		if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
-		{
-			MouseHitColumn = HexCoord.QRS.X;
-			MouseHitRow = HexCoord.QRS.Y + (HexCoord.QRS.X - (HexCoord.QRS.X & 1)) / 2;
-		}
-		else if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
-		{
-			MouseHitColumn = HexCoord.QRS.X + (HexCoord.QRS.Y - (HexCoord.QRS.Y & 1)) / 2;
-			MouseHitRow = HexCoord.QRS.Y;
-		}
-	}
-}
-
 void AHexGrid::CreateGrid()
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateGrid);
+	WireframeDefaultCustomData = {WireframeDefaultColor.R, WireframeDefaultColor.G, WireframeDefaultColor.B, WireframeDefaultColor.A};
 
 	auto MeshComs = SceneRoot->GetAttachChildren();
 	TArray<UInstancedStaticMeshComponent*> MeshComsCache;
@@ -221,7 +56,7 @@ void AHexGrid::CreateGrid()
 		if (auto Mesh = Cast<UInstancedStaticMeshComponent>(MeshCom))
 		{
 			Mesh->ClearInstances();
-			if (Mesh == HexGridBound)
+			if (Mesh == HexGridLand || Mesh == HexGridWireframe)
 			{
 				continue;
 			}
@@ -413,6 +248,185 @@ void AHexGrid::CreateGrid()
 		}else
 		{
 			UE_LOG(LogHexGrid, Error, TEXT("LandDynamicMeshActor is nullptr, 在场景中放入LandDynamicMeshActor"));
+		}
+	}
+}
+
+void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream, int32 Q, int32 R)
+{
+	FHCubeCoord CCoord{FIntVector(Q, R, -Q - R)};
+	// Todo: 线框模式， 只绘制线框
+	// 世界坐标
+	auto TileLocation = HexToWorld(CCoord);
+	// 随机block (Weight表示成为障碍物的概率)
+	bool IsBlocking = TileConfig.BlockWeight <= 0.f ? false : TileConfig.BlockWeight >= RandomStream.FRandRange(0.0f, 1.0f);
+
+	float Height = TileConfig.MinHeight;
+	switch (TileConfig.HeightRandomType) {
+		case EHTileHeightRandomType::NONE:
+			break;
+		case EHTileHeightRandomType::RDHeightArea:
+			if (RdHeightAreaCoords.Contains(CCoord))
+			{
+				// 这里是高地
+				Height = TileConfig.MaxHeight;
+			}
+			break;
+	}
+	
+	float Cost = TileConfig.MinCost;
+	switch (TileConfig.CostRandomType) {
+		case EHTileCostRandomType::NONE:
+			break;
+		case EHTileCostRandomType::NOISE:
+			{
+				auto Noise = FastNoiseWrapper->GetNoise2D(TileLocation.X, TileLocation.Y);
+
+				if (Noise > 1.f || Noise < -1.f)
+				{
+					UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
+					Noise = 1.f;
+				}
+				else if (Noise < -1.f)
+				{
+					UE_LOG(LogHexGrid, Error, TEXT("Noise is out of range: %f"), Noise);
+					Noise = -1.f;
+				}
+
+				// 将Noise值映射到TileConfig.MinCost, TileConfig.MaxCost之间
+				// 将噪声值映射到0到1之间
+				float normalizedNoise = (Noise + 1) / 2;
+				// 使用线性插值将噪声值映射到TileConfig.MinCost和TileConfig.MaxCost之间
+				if (TileConfig.bDiscreteCost)
+				{
+					Cost = FMath::RoundToInt(FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise));
+				}
+				else
+				{
+					Cost = FMath::Lerp(TileConfig.MinCost, TileConfig.MaxCost, normalizedNoise);
+				}
+
+				// // 目前，噪声算法中，高度和Cost使用了一个噪声值，Todo: 考虑是否应该分开
+				//
+				// float NoiseHeight = FMath::Lerp(TileConfig.MinHeight, TileConfig.MaxHeight, normalizedNoise);
+				// Height = IsBlocking ? TileConfig.BlockHeight : NoiseHeight * NoiseScale;
+			}
+			break;
+		case EHTileCostRandomType::SIMPLE:
+			{
+				if (TileConfig.bDiscreteCost)
+				{
+					Cost = FMath::RoundToInt(RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost));
+				}
+				else
+				{
+					Cost = RandomStream.FRandRange(TileConfig.MinCost, TileConfig.MaxCost);
+				}
+			}
+			break;
+	}
+	
+	check(Cost >= 1.f);
+	// 创建HexTile
+	FHexTile Tile;
+	Tile.CubeCoord = CCoord;
+	Tile.WorldPosition = TileLocation;
+	Tile.Cost = Cost;
+	Tile.bIsBlocking = IsBlocking;
+	Tile.Height = Height;
+	Tile.EnvironmentType = IsBlocking?EHTileEnvironmentType::OBSTACLE : Cost2Environment[FMath::RoundToInt(Cost)];
+	// UE_LOG(LogHexGrid, Log, TEXT("Cost: %f, CCoord: %s"), Cost, *CCoord.ToString());
+	GridTiles.Add(Tile);
+	auto ScaleXY = TileConfig.TileSize / DefaultHexMeshSize;
+	auto Transform = FTransform(Offset, TileLocation, FVector(ScaleXY, ScaleXY, 1));
+	float ScaleZ =  (Height - 1) * TileConfig.RenderHeightScale;
+	ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
+	
+	if (DrawWireframe)
+	{
+		FTransform WireFrameTransform = FTransform(Offset, TileLocation + FVector(0.f, 0.f, ScaleZ * TileConfig.BaseRenderHeight + WireframeOffsetZ), FVector(ScaleXY, ScaleXY, 1));
+		auto Index = HexGridWireframe->AddInstance(WireFrameTransform, true);
+		HexGridWireframe->SetCustomData(Index, WireframeDefaultCustomData);
+	}
+
+	if (DrawLand)
+	{
+		// 目前默认的Tile的Mesh是以100为标准制作的， 因此这里按照100进行缩放
+		// Block的设置Z的Scale为BlockHeight， 普通区块设置为Cost * 2.f
+		
+		Transform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleZ));
+		auto Index = HexGridLand->AddInstance(Transform, true);
+
+		const auto& Environment = Environments[Tile.EnvironmentType];
+		TArray<float> CustomData {Environment.CustomData.R, Environment.CustomData.G, Environment.CustomData.B, Environment.CustomData.A};
+		HexGridLand->SetCustomData(Index, CustomData);
+		if (Environment.DecorationMesh.IsValid())
+		{
+			auto EnvironmentMesh = EnvironmentMeshes[Tile.EnvironmentType];
+			auto RDCount = RandomStream.RandRange(1, Environment.DecorationMaxCount);
+			for (int32 i = 0; i < RDCount; ++i)
+			{
+				FTransform ItemTransform;
+				if (Environment.bRandomDecorationRotation)
+				{
+					ItemTransform.SetRotation(FQuat(FRotator(0.f, RandomStream.FRandRange(0.f, 360.f), 0.f)));
+				}
+
+				if (Environment.bRandomDecorationLocation)
+				{
+					// 随机XY平面的位置， 范围是TileSize的一半
+					auto RandomX = RandomStream.FRandRange(-TileConfig.TileSize / 2.f, TileConfig.TileSize / 2.f);
+					auto RandomY = RandomStream.FRandRange(-TileConfig.TileSize / 2.f, TileConfig.TileSize / 2.f);
+					auto RandomLocation = FVector(RandomX, RandomY, 0.f);
+					ItemTransform.SetLocation(TileLocation + RandomLocation + FVector(0.f, 0.f, ScaleZ * TileConfig.BaseRenderHeight));
+				}
+				else
+				{
+					ItemTransform.SetLocation(TileLocation+ FVector(0.f, 0.f, ScaleZ * TileConfig.BaseRenderHeight));
+				}
+
+				ItemTransform.SetScale3D(FVector(Environment.DecorationScale));
+				EnvironmentMesh->AddInstance(ItemTransform, true);
+			}
+		}
+	}
+}
+
+FRotator AHexGrid::GetGridRotator() const
+{
+	if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
+	{
+		return FlatRotator;
+	}
+	else if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
+	{
+		return  PointyRotator;
+	}
+
+	return FRotator::ZeroRotator;
+}
+
+void AHexGrid::UpdateHitLocation(const FVector& InHitLocation)
+{
+	MouseHitLocation = InHitLocation;
+
+	if (TileConfig.BaseOnRadius)
+	{
+		MouseHitColumn = 0;
+		MouseHitRow = 0;
+	}
+	else
+	{
+		auto HexCoord = WorldToHex(InHitLocation);
+		if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
+		{
+			MouseHitColumn = HexCoord.QRS.X;
+			MouseHitRow = HexCoord.QRS.Y + (HexCoord.QRS.X - (HexCoord.QRS.X & 1)) / 2;
+		}
+		else if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
+		{
+			MouseHitColumn = HexCoord.QRS.X + (HexCoord.QRS.Y - (HexCoord.QRS.Y & 1)) / 2;
+			MouseHitRow = HexCoord.QRS.Y;
 		}
 	}
 }
@@ -764,16 +778,16 @@ int AHexGrid::GetDistanceByIndex(int A, int B) const
 	return INT_MAX;
 }
 
-void AHexGrid::SetHexTileColor(int Index, const FLinearColor& InColor, float NewHeight)
+void AHexGrid::SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeight)
 {
 	TArray<float> CustomData {InColor.R, InColor.G, InColor.B, InColor.A};
-	HexGridBound->SetCustomData(Index, CustomData);
+	HexGridWireframe->SetCustomData(Index, CustomData);
 	FTransform Transform ;
-	HexGridBound->GetInstanceTransform(Index, Transform, true);
+	HexGridWireframe->GetInstanceTransform(Index, Transform, true);
 	auto OldTrans = Transform.GetLocation();
 	OldTrans.Set(OldTrans.X, OldTrans.Y, NewHeight);
 	Transform.SetLocation(OldTrans);
-	HexGridBound->UpdateInstanceTransform(Index,Transform, true);
+	HexGridWireframe->UpdateInstanceTransform(Index,Transform, true);
 }
 
 FHCubeCoord AHexGrid::GetHexCoordByXY(int32 Row, int32 Column) const

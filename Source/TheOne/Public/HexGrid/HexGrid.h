@@ -141,7 +141,10 @@ protected:
 	TObjectPtr<USceneComponent> SceneRoot;
 
 	UPROPERTY(VisibleDefaultsOnly)
-	TObjectPtr<UInstancedStaticMeshComponent> HexGridBound;
+	TObjectPtr<UInstancedStaticMeshComponent> HexGridWireframe;
+	
+	UPROPERTY(VisibleDefaultsOnly)
+	TObjectPtr<UInstancedStaticMeshComponent> HexGridLand;
 
 	UPROPERTY(VisibleDefaultsOnly)
 	TMap<EHTileEnvironmentType, TObjectPtr<UInstancedStaticMeshComponent>> EnvironmentMeshes;
@@ -166,7 +169,14 @@ public:
 	float NoiseScale = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	bool CreateMesh{true};
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	bool DrawLand{true};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	bool DrawWireframe{true};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	float WireframeOffsetZ{0.5f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	FLinearColor WireframeDefaultColor{};
 	/**
 	 * 通过在编辑器中配置它来创建区块
 	 * Layout of the tile (i know is very misleading, please read the article)
@@ -308,7 +318,7 @@ public:
 	int GetDistanceByIndex(int A, int B) const;
 
 	UFUNCTION(BlueprintCallable)
-	void SetHexTileColor(int Index, const FLinearColor& InColor, float NewHeight = 0.f);
+	void SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeight = 0.f);
 protected:
 
 	// Called when the game starts or when spawned
@@ -317,4 +327,6 @@ protected:
 	FHCubeCoord GetHexCoordByXY(int32 Row, int32 Column) const;
 private:
 	FHDirections HDirections{};
+
+	TArray<float> WireframeDefaultCustomData;
 };

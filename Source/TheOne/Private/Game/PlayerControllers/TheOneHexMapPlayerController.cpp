@@ -74,7 +74,7 @@ void ATheOneHexMapPlayerController::OnSelectedCharacterEnterNewCoord(const FHCub
 	for (const auto& Hex : Hexes)
 	{
 		auto MeshInstanceIndex = HexGrid->GetHexTileIndex(Hex.CubeCoord);
-		HexGrid->SetHexTileColor(MeshInstanceIndex, FLinearColor::Green, 0.3f);
+		HexGrid->SetWireFrameColor(MeshInstanceIndex, FLinearColor::Green, 0.3f);
 		TipsHexCache.Add(MeshInstanceIndex);
 	}
 }

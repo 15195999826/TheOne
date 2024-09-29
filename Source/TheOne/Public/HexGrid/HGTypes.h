@@ -165,6 +165,9 @@ struct FHTileConfig
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="高度缩放比例"))
 	float RenderHeightScale {1.f};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="高度缩放比例"))
+	float BaseRenderHeight {1.f};
 };
 
 /**

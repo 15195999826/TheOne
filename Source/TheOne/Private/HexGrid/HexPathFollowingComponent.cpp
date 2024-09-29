@@ -3,7 +3,6 @@
 
 #include "HexGrid/HexPathFollowingComponent.h"
 
-#include "AI/TheOneAIController.h"
 #include "HexGrid/HexGrid.h"
 
 DEFINE_LOG_CATEGORY(LogHexPathFollow);
