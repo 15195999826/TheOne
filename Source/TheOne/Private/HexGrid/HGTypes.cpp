@@ -1,3 +1,3 @@
 ﻿#include "HexGrid/HGTypes.h"
 
-const FHCubeCoord FHCubeCoord::Invalid{ FIntVector::ZeroValue };
+FHCubeCoord FHCubeCoord::ErrorCoord {FIntVector(-1)};

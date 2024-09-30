@@ -58,14 +58,14 @@ public:
 	void UnregisterInputAction(const int& InTaskID);
 
 protected:
-	virtual void GeneralOnHitGround(const FVector& InHitLocation);
-	virtual FVector GroundLocationHook(const FVector& InLocation)
-	{
-		return InLocation;
-	}
+	virtual void GeneralOnHitGround(const FVector& InHitLocation, FVector& OutGroundLocation);
+	virtual void GeneralOnHitCharacter(ATheOneCharacterBase* HitCharacter);
+	virtual void GeneralOnHitNone();
+	
+	virtual bool CanWalk(const FVector& InLocation) const { return true; }
 	
 	UFUNCTION(BlueprintImplementableEvent)
-	void BP_OnHitGround(const FVector& HitLocation, bool bIsRightClick);
+	void BP_OnHitGround(const FVector& HitLocation, bool bIsRightClick, bool CanWalk);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void BP_OnHitActor(AActor* InHitActor, bool bIsRightClick);

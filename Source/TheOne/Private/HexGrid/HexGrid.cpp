@@ -36,6 +36,7 @@ int AHexGrid::GetDistance(const FHCubeCoord& A, const FHCubeCoord& B)
 void AHexGrid::BeginPlay()
 {
 	Super::BeginPlay();
+	EmptyHexTile.CubeCoord.QRS = FIntVector(-1);
 }
 
 // Called every frame
@@ -417,7 +418,7 @@ void AHexGrid::UpdateHitLocation(const FVector& InHitLocation)
 	}
 	else
 	{
-		auto HexCoord = WorldToHex(InHitLocation);
+		const auto& HexCoord = WorldToHex(InHitLocation);
 		if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
 		{
 			MouseHitColumn = HexCoord.QRS.X;
@@ -449,7 +450,7 @@ FVector AHexGrid::HexXYToWorld(int Row, int Column)
 	return HexToWorld(CCoord);
 }
 
-FVector AHexGrid::HexToWorld(const FHCubeCoord &H)
+FVector AHexGrid::HexToWorld(const FHCubeCoord& H)
 {
 	// Set the layout orientation
 	FHTileOrientation TileOrientation;
@@ -586,14 +587,14 @@ bool AHexGrid::InRange(const FHCubeCoord& Center, const FHCubeCoord& Target, int
 
 bool AHexGrid::IsTileReachable(const FVector& Location)
 {
-	auto HexCoord = WorldToHex(Location);
+	const auto& HexCoord = WorldToHex(Location);
 	auto Index = GetHexTileIndex(HexCoord);
 	if (Index == INDEX_NONE)
 	{
 		return false;
 	}
 	
-	auto Tile = GridTiles[Index];
+	const auto& Tile = GridTiles[Index];
 	return !Tile.bIsBlocking;
 }
 
@@ -667,7 +668,7 @@ int AHexGrid::GetHexTileIndex(const FHCubeCoord& InCoord) const
 	return INDEX_NONE;
 }
 
-FHCubeCoord AHexGrid::GetHexCoordByIndex(int Index)
+FHCubeCoord AHexGrid::GetHexCoordByIndex(int Index) const
 {
 	if (Index < 0 || Index >= GridTiles.Num())
 	{
@@ -778,15 +779,16 @@ int AHexGrid::GetDistanceByIndex(int A, int B) const
 	return INT_MAX;
 }
 
-void AHexGrid::SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeight)
+void AHexGrid::SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeightOffset)
 {
 	TArray<float> CustomData {InColor.R, InColor.G, InColor.B, InColor.A};
 	HexGridWireframe->SetCustomData(Index, CustomData);
+	const auto& Tile = GridTiles[Index];
+	float ScaleZ =  (Tile.Height - 1) * TileConfig.RenderHeightScale;
+	ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
 	FTransform Transform ;
 	HexGridWireframe->GetInstanceTransform(Index, Transform, true);
-	auto OldTrans = Transform.GetLocation();
-	OldTrans.Set(OldTrans.X, OldTrans.Y, NewHeight);
-	Transform.SetLocation(OldTrans);
+	Transform.SetLocation(Tile.WorldPosition + FVector(0.f, 0.f, ScaleZ * TileConfig.BaseRenderHeight + WireframeOffsetZ + NewHeightOffset));
 	HexGridWireframe->UpdateInstanceTransform(Index,Transform, true);
 }
 

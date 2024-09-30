@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Game/TheOnePlayerControllerBase.h"
 #include "HexGrid/HGTypes.h"
+#include "Types/TheOneFocusData.h"
 #include "TheOneHexMapPlayerController.generated.h"
 
 class ATheOneCharacterBase;
@@ -28,8 +29,13 @@ public:
 	bool IsPlayInEditor() const { return bPlayInEditor; }
 	
 protected:
-	virtual void GeneralOnHitGround(const FVector& InHitLocation) override;
-	virtual FVector GroundLocationHook(const FVector& InLocation) override;
+	virtual void Tick(float DeltaSeconds) override;
+	
+	virtual void GeneralOnHitGround(const FVector& InHitLocation, FVector& OutGroundLocation) override;
+	virtual void GeneralOnHitCharacter(ATheOneCharacterBase* HitCharacter) override;
+	virtual void GeneralOnHitNone() override;
+	
+	virtual bool CanWalk(const FVector& InLocation) const override;
 
 	virtual void ShowReleaseDistanceTips() override;
 	
@@ -43,4 +49,14 @@ private:
 	UFUNCTION()
 	void OnSelectedCharacterEnterNewCoord(const FHCubeCoord& InCoord);
 
+	// For Focus
+protected:
+	UPROPERTY(EditAnywhere)
+	float FocusTriggerTime = 0.5f;
+private:
+	ETheOneFocusType FocusType = ETheOneFocusType::None;
+	FHCubeCoord CurrentCoord;
+	TWeakObjectPtr<ATheOneCharacterBase> FocusCharacter;
+	float FocusTimer = 0.0f;
+	bool Focusing = false;
 };

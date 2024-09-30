@@ -5,13 +5,16 @@
 #include "CoreMinimal.h"
 #include "GameModeComponents/TheOneAutoChessBattleComponent.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Types/TheOneFocusData.h"
 #include "TheOneEventSystem.generated.h"
+
 // 命名规范:  蓝图动态事件用Signature结尾，C++事件用Delegate结尾
 // 声明enum
 enum class ETheOneUseAbilityCommandType : uint8;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTheOneSaveLevel, const FName&, RowName, const FTheOneAutoChessLevelConfig, LevelData);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectCharacterDelegate, ATheOneCharacterBase*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGetFocusDelegate, const FTheOneFocusData&);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTheOneUseAbilityCommandSignature, ETheOneUseAbilityCommandType, CommandType, int32, IntPayload);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FTheOneSimpleSignature);
@@ -41,4 +44,7 @@ public:
 	FTheOneSimpleSignature OnAbilityCommandCanceled;
 	UPROPERTY(BlueprintAssignable)
 	FTheOneSimpleSignature OnAbilityCommandErrorTarget;
+
+	FOnGetFocusDelegate OnGetFocus;
+	FSimpleMulticastDelegate OnLoseFocus;
 };

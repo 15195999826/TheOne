@@ -22,10 +22,18 @@ USTRUCT(BlueprintType)
 struct FHexTile
 {
 	GENERATED_USTRUCT_BODY()
-
+	
 	FHexTile() {};
 
-	/* Hex坐标， RQS表示 */
+	bool IsValid() const
+	{
+		return CubeCoord.IsValid();
+	}
+
+	/**
+	 * Hex坐标， RQS表示
+	 * 构造一个和不为0的既可以表示它不存在
+	 **/
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
 	FHCubeCoord CubeCoord;
 
@@ -130,7 +138,8 @@ class THEONE_API AHexGrid : public AActor
 public:
 	inline static FRotator FlatRotator = FRotator(0.f, 0.f, 0.f);
 	inline static FRotator PointyRotator = FRotator(0.f, 30.f, 0.f);
-
+	FHexTile EmptyHexTile;
+	
 	static int GetDistance(const FHCubeCoord& A, const FHCubeCoord& B);
 	
 public:	
@@ -216,8 +225,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	int MouseHitColumn;
 
-	FHexTile EmptyHexTile;
-
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -251,7 +258,7 @@ public:
 	 * @see https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
 	 */ 
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
-	FVector HexToWorld(const FHCubeCoord &H);
+	FVector HexToWorld(const FHCubeCoord& H);
 
 	/**
 	 * Convert coordinates from World space to Cube space.
@@ -308,7 +315,7 @@ public:
 	bool IsTileReachable(const FVector &Location);
 	
 	int GetHexTileIndex(const FHCubeCoord& InCoord) const;
-	FHCubeCoord GetHexCoordByIndex(int Index);
+	FHCubeCoord GetHexCoordByIndex(int Index) const;
 
 	const FHexTile& GetHexTile(const FVector& InLocation);
 	const FHexTile& GetHexTile(const FHCubeCoord& InCoord);
@@ -318,7 +325,7 @@ public:
 	int GetDistanceByIndex(int A, int B) const;
 
 	UFUNCTION(BlueprintCallable)
-	void SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeight = 0.f);
+	void SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeightOffset = 0.f);
 protected:
 
 	// Called when the game starts or when spawned

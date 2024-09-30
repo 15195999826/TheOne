@@ -204,8 +204,8 @@ USTRUCT(BlueprintType)
 struct FHCubeCoord
 {
 	GENERATED_USTRUCT_BODY()
-	
-	static const FHCubeCoord Invalid;
+
+	static FHCubeCoord ErrorCoord;
 
 	FHCubeCoord() {}
 
@@ -268,6 +268,11 @@ struct FHCubeCoord
 		Ret.Append(FString::FromInt(QRS.Z));
 		Ret.Append("}");
 		return Ret;
+	}
+
+	bool IsValid() const
+	{
+		return QRS.X + QRS.Y + QRS.Z == 0;
 	}
 };
 

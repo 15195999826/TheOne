@@ -76,8 +76,8 @@ FPathFindingResult AHexAStarNavMesh::FindPath(const FNavAgentProperties& AgentPr
 			// The pathfinder need a starting and ending point, so we create two temporary
 			// cube coordinates from the Query start and ending location
 			// 中文：路径搜索需要一个起点和一个终点，所以我们从查询的起点和终点位置创建两个临时的立方体坐标
-			FHCubeCoord StartCCoord{ GraphAStarNavMesh->HexGrid->WorldToHex(Query.StartLocation) };
-			FHCubeCoord EndCCoord{ GraphAStarNavMesh->HexGrid->WorldToHex(Query.EndLocation) };
+			const FHCubeCoord& StartCCoord{ GraphAStarNavMesh->HexGrid->WorldToHex(Query.StartLocation) };
+			const FHCubeCoord& EndCCoord{ GraphAStarNavMesh->HexGrid->WorldToHex(Query.EndLocation) };
 			
 			// and than we search in the HexGrid CubeCoordinates array for the index of items 
 			// equals to our temp coordinates.
@@ -151,7 +151,7 @@ FPathFindingResult AHexAStarNavMesh::FindPath(const FNavAgentProperties& AgentPr
 					{
 						// Get a temporary Cube Coordinate from our HexGrid
 						// 中文：从我们的HexGrid获取一个临时立方体坐标
-						FHCubeCoord GridCoord{ GraphAStarNavMesh->HexGrid->GetHexCoordByIndex(PathIndex) };
+						const FHCubeCoord& GridCoord{ GraphAStarNavMesh->HexGrid->GetHexCoordByIndex(PathIndex) };
 
 						// Create a temporary FNavPathPoint
 						FNavPathPoint PathPoint{};

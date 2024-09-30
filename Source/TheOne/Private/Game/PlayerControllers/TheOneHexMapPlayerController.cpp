@@ -8,28 +8,92 @@
 #include "HexGrid/HexGrid.h"
 #include "Subsystems/TheOneContextSystem.h"
 
-void ATheOneHexMapPlayerController::GeneralOnHitGround(const FVector& InHitLocation)
+void ATheOneHexMapPlayerController::Tick(float DeltaSeconds)
 {
-	Super::GeneralOnHitGround(InHitLocation);
-	if (auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid)
-	{
-		HexGrid->UpdateHitLocation(InHitLocation);
+	Super::Tick(DeltaSeconds);
+	switch (FocusType) {
+		case ETheOneFocusType::None:
+			break;
+		case ETheOneFocusType::Character:
+		case ETheOneFocusType::Tile:
+			{
+				FocusTimer += DeltaSeconds;
+				if (!Focusing && FocusTimer >= FocusTriggerTime)
+				{
+					Focusing = true;
+					auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+					FTheOneFocusData FocusData;
+					FocusData.FocusType = FocusType;
+					FocusData.FocusCharacter = FocusCharacter;
+					FocusData.TileIndex =  CurrentCoord.IsValid()?GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid->GetHexTileIndex(CurrentCoord) : INDEX_NONE;
+					EventSystem->OnGetFocus.Broadcast(FocusData);
+				}
+			}
+			break;
 	}
 }
 
-FVector ATheOneHexMapPlayerController::GroundLocationHook(const FVector& InLocation)
+void ATheOneHexMapPlayerController::GeneralOnHitGround(const FVector& InHitLocation, FVector& OutGroundLocation)
 {
 	if (PostRealHitLocation)
 	{
-		return InLocation;
+		OutGroundLocation = InHitLocation;
+	}
+	else
+	{
+		auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+		const double TempZ{InHitLocation.Z};
+		const FHCubeCoord& HexCoord = HexGrid->WorldToHex(InHitLocation);
+		FVector Result{ HexGrid->HexToWorld(HexCoord) };
+		Result.Z = TempZ;
+		OutGroundLocation = Result;
+		if (CurrentCoord != HexCoord || FocusType != ETheOneFocusType::Tile)
+		{
+			FocusType = ETheOneFocusType::Tile;
+			FocusCharacter = nullptr;
+			CurrentCoord = HexCoord;
+			FocusTimer = 0;
+		}
+	}
+	
+	if (bIsPawnImplementICursorTrace)
+	{
+		ICursorTraceInterface::Execute_OnHitGround(GetPawn(), OutGroundLocation);
 	}
 	
 	if (auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid)
 	{
-		return HexGrid->SnapToGrid(InLocation);
+		HexGrid->UpdateHitLocation(OutGroundLocation);
 	}
+}
 
-	return InLocation;
+void ATheOneHexMapPlayerController::GeneralOnHitCharacter(ATheOneCharacterBase* HitCharacter)
+{
+	Super::GeneralOnHitCharacter(HitCharacter);
+	if (FocusType != ETheOneFocusType::Character)
+	{
+		FocusType = ETheOneFocusType::Character;
+		FocusCharacter = HitCharacter;
+		CurrentCoord = FHCubeCoord::ErrorCoord;
+		FocusTimer = 0;
+	}
+}
+
+void ATheOneHexMapPlayerController::GeneralOnHitNone()
+{
+	if (Focusing)
+	{
+		Focusing = false;
+		auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+		EventSystem->OnLoseFocus.Broadcast();
+	}
+	FocusType = ETheOneFocusType::None;
+
+}
+
+bool ATheOneHexMapPlayerController::CanWalk(const FVector& InLocation) const
+{
+	return GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid->IsTileReachable(InLocation);
 }
 
 void ATheOneHexMapPlayerController::ShowReleaseDistanceTips()
@@ -55,7 +119,7 @@ void ATheOneHexMapPlayerController::HideReleaseDistanceTips()
 		auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
 		for (const auto& HexIndex : TipsHexCache)
 		{
-			// HexGrid->SetHexTileColor(HexIndex,HexGrid->DefaultColor, 0.f);
+			HexGrid->SetWireFrameColor(HexIndex,HexGrid->WireframeDefaultColor, 0.f);
 		}
 		TipsHexCache.Empty();
 	}
@@ -66,7 +130,7 @@ void ATheOneHexMapPlayerController::OnSelectedCharacterEnterNewCoord(const FHCub
 	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
 	for (const auto& HexIndex : TipsHexCache)
 	{
-		// HexGrid->SetHexTileColor(HexIndex,HexGrid->DefaultColor, 0.f);
+		HexGrid->SetWireFrameColor(HexIndex,HexGrid->WireframeDefaultColor, 0.f);
 	}
 	TipsHexCache.Empty();
 	auto CurrentCoord = SelectedCharacter->GetCurrentHexCoord();

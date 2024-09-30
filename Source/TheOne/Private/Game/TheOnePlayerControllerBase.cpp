@@ -39,6 +39,19 @@ void ATheOnePlayerControllerBase::DeselectCharacter()
 	}
 }
 
+void ATheOnePlayerControllerBase::GeneralOnHitCharacter(ATheOneCharacterBase* HitCharacter)
+{
+	if (bIsPawnImplementICursorTrace)
+	{
+		ICursorTraceInterface::Execute_OnHitActor(GetPawn(), HitCharacter);
+	}
+}
+
+void ATheOnePlayerControllerBase::GeneralOnHitNone()
+{
+	
+}
+
 void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -85,8 +98,7 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 		{
 			if (HitResult.GetActor()->ActorHasTag("Ground"))
 			{
-				HitGroundLocation = GroundLocationHook(HitResult.Location);
-				GeneralOnHitGround(HitGroundLocation);
+				GeneralOnHitGround(HitResult.Location, HitGroundLocation);
 				HitGround = true;
 			}
 			else if (HitResult.GetActor()->ActorHasTag("Character"))
@@ -96,13 +108,15 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 				// 通用命中角色时调用
 				if (HitCharacter)
 				{
-					if (bIsPawnImplementICursorTrace)
-					{
-						ICursorTraceInterface::Execute_OnHitActor(GetPawn(), HitCharacter);
-					}
+					GeneralOnHitCharacter(HitCharacter);
 				}
 			}
 		}
+	}
+
+	if (!HitGround && HitCharacter == nullptr)
+	{
+		GeneralOnHitNone();
 	}
 
 	switch (CursorState) {
@@ -110,7 +124,8 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 			{
 				if (HitGround)
 				{
-					BP_OnHitGround(HitGroundLocation, bIsRightClick);
+					BP_OnHitGround(HitGroundLocation, bIsRightClick,
+					               bIsRightClick ? CanWalk(HitGroundLocation) : false);
 				}
 				else if (HitCharacter)
 				{
@@ -320,8 +335,9 @@ void ATheOnePlayerControllerBase::UnregisterInputAction(const int& InTaskID)
 	}
 }
 
-void ATheOnePlayerControllerBase::GeneralOnHitGround(const FVector& InHitLocation)
+void ATheOnePlayerControllerBase::GeneralOnHitGround(const FVector& InHitLocation, FVector& OutGroundLocation)
 {
+	OutGroundLocation = InHitLocation;
 	if (bIsPawnImplementICursorTrace)
 	{
 		ICursorTraceInterface::Execute_OnHitGround(GetPawn(), InHitLocation);
