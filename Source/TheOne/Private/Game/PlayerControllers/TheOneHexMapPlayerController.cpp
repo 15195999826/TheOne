@@ -25,7 +25,8 @@ void ATheOneHexMapPlayerController::Tick(float DeltaSeconds)
 					FTheOneFocusData FocusData;
 					FocusData.FocusType = FocusType;
 					FocusData.FocusCharacter = FocusCharacter;
-					FocusData.TileIndex =  CurrentCoord.IsValid()?GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid->GetHexTileIndex(CurrentCoord) : INDEX_NONE;
+					FocusData.TileIndex =  FocusCurrentCoord.IsValid()?GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid->GetHexTileIndex(FocusCurrentCoord) : INDEX_NONE;
+					UE_LOG(LogTemp, Warning, TEXT("Post, FocusData: %s"), *FocusData.ToString());
 					EventSystem->OnGetFocus.Broadcast(FocusData);
 				}
 			}
@@ -47,12 +48,15 @@ void ATheOneHexMapPlayerController::GeneralOnHitGround(const FVector& InHitLocat
 		FVector Result{ HexGrid->HexToWorld(HexCoord) };
 		Result.Z = TempZ;
 		OutGroundLocation = Result;
-		if (CurrentCoord != HexCoord || FocusType != ETheOneFocusType::Tile)
+		if (FocusCurrentCoord != HexCoord || FocusType != ETheOneFocusType::Tile)
 		{
+			Focusing = false;
 			FocusType = ETheOneFocusType::Tile;
 			FocusCharacter = nullptr;
-			CurrentCoord = HexCoord;
+			FocusCurrentCoord = HexCoord;
 			FocusTimer = 0;
+			auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+			EventSystem->OnLoseFocus.Broadcast();
 		}
 	}
 	
@@ -72,10 +76,13 @@ void ATheOneHexMapPlayerController::GeneralOnHitCharacter(ATheOneCharacterBase* 
 	Super::GeneralOnHitCharacter(HitCharacter);
 	if (FocusType != ETheOneFocusType::Character)
 	{
+		Focusing = false;
 		FocusType = ETheOneFocusType::Character;
 		FocusCharacter = HitCharacter;
-		CurrentCoord = FHCubeCoord::ErrorCoord;
+		FocusCurrentCoord = FHCubeCoord::ErrorCoord;
 		FocusTimer = 0;
+		auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+		EventSystem->OnLoseFocus.Broadcast();
 	}
 }
 

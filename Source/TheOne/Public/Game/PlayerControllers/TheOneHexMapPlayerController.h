@@ -55,7 +55,7 @@ protected:
 	float FocusTriggerTime = 0.5f;
 private:
 	ETheOneFocusType FocusType = ETheOneFocusType::None;
-	FHCubeCoord CurrentCoord;
+	FHCubeCoord FocusCurrentCoord;
 	TWeakObjectPtr<ATheOneCharacterBase> FocusCharacter;
 	float FocusTimer = 0.0f;
 	bool Focusing = false;

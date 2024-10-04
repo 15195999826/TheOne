@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "HexGrid/HGTypes.h"
 #include "TheOneFocusData.generated.h"
 
 UENUM(BlueprintType)
@@ -17,6 +16,10 @@ struct FTheOneFocusData
 {
 
 	GENERATED_BODY()
+	
+	FTheOneFocusData(): TileIndex(0)
+	{
+	}
 
 	UPROPERTY(BlueprintReadOnly)
 	ETheOneFocusType FocusType = ETheOneFocusType::None;
@@ -26,4 +29,6 @@ struct FTheOneFocusData
 	
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<class ATheOneCharacterBase> FocusCharacter;
+
+	FString ToString() const;
 };

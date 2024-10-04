@@ -675,69 +675,70 @@ FHCubeCoord AHexGrid::GetHexCoordByIndex(int Index) const
 		UE_LOG(LogHexGrid, Error, TEXT("[AHexGrid] GetHexCoordByIndex 查询越界的Index, Index: %d"), Index);
 		return FHCubeCoord{FIntVector::ZeroValue};;
 	}
-	
-	if (TileConfig.BaseOnRadius)
-	{
-		// 从Index逆推出Q,R
-		auto Radius = TileConfig.Radius;
-		int32 DeltaQ = 0;
-		int32 PassedCount = 0;
 
-		// Find the maximum DeltaQ that satisfies PassedCount <= Index
-		while (true)
-		{
-			int32 NextPassedCount;
-			if (DeltaQ <= Radius + 1)
-			{
-				NextPassedCount = (Radius + 1 + Radius + DeltaQ) * (DeltaQ) / 2;
-			}
-			else
-			{
-				NextPassedCount = (Radius + 1 + 2 * Radius + 1) * (Radius + 1) / 2;
-				NextPassedCount += (5 * Radius - DeltaQ + 2) * (DeltaQ - Radius - 1) / 2;
-			}
-
-			if (NextPassedCount > Index)
-			{
-				break;
-			}
-
-			PassedCount = NextPassedCount;
-			DeltaQ++;
-		}
-		// Calculate Q
-		int32 Q = DeltaQ - Radius - 1;
-		int32 Start{FMath::Max(-Radius, -Q - Radius)};
-
-		// Calculate R
-		int32 R = Index - PassedCount + Start;
-		return FHCubeCoord{FIntVector(Q, R, -Q - R)};
-	}
-	
-	const auto RowStart = -FMath::FloorToInt(TileConfig.Row / 2.f);
-	const auto ColumnStart = -FMath::FloorToInt(TileConfig.Column / 2.f);
-	if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
-	{
-		int32 DeltaCol = Index / TileConfig.Row;
-		int32 Col = DeltaCol + ColumnStart;
-		int32 Row = Index % TileConfig.Row + RowStart;
-		// UE_LOG(LogHexGrid, Log, TEXT("Row: %d, Col: %d"), Row, Col);
-		int32 R = Row - (Col - (Col & 1)) / 2;
-		return FHCubeCoord{FIntVector(Col, R, -Col - R)};
-	}
-	
-	if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
-	{
-		int32 DeltaRow = Index / TileConfig.Column;
-		int32 Row = DeltaRow + RowStart;
-		int32 Col = Index % TileConfig.Column + ColumnStart;
-		// UE_LOG(LogHexGrid, Log, TEXT("Row: %d, Col: %d"), Row, Col);
-		int32 Q = Col - (Row - (Row & 1)) / 2;
-		return FHCubeCoord{FIntVector(Q, Row, -Q - Row)};
-	}
-
-	UE_LOG(LogHexGrid, Error, TEXT("[AHexGrid] GetHexCoordByIndex Failed, HexGrid配置错误"));
-	return FHCubeCoord{FIntVector::ZeroValue};
+	return GridTiles[Index].CubeCoord;
+	// if (TileConfig.BaseOnRadius)
+	// {
+	// 	// 从Index逆推出Q,R
+	// 	auto Radius = TileConfig.Radius;
+	// 	int32 DeltaQ = 0;
+	// 	int32 PassedCount = 0;
+	//
+	// 	// Find the maximum DeltaQ that satisfies PassedCount <= Index
+	// 	while (true)
+	// 	{
+	// 		int32 NextPassedCount;
+	// 		if (DeltaQ <= Radius + 1)
+	// 		{
+	// 			NextPassedCount = (Radius + 1 + Radius + DeltaQ) * (DeltaQ) / 2;
+	// 		}
+	// 		else
+	// 		{
+	// 			NextPassedCount = (Radius + 1 + 2 * Radius + 1) * (Radius + 1) / 2;
+	// 			NextPassedCount += (5 * Radius - DeltaQ + 2) * (DeltaQ - Radius - 1) / 2;
+	// 		}
+	//
+	// 		if (NextPassedCount > Index)
+	// 		{
+	// 			break;
+	// 		}
+	//
+	// 		PassedCount = NextPassedCount;
+	// 		DeltaQ++;
+	// 	}
+	// 	// Calculate Q
+	// 	int32 Q = DeltaQ - Radius - 1;
+	// 	int32 Start{FMath::Max(-Radius, -Q - Radius)};
+	//
+	// 	// Calculate R
+	// 	int32 R = Index - PassedCount + Start;
+	// 	return FHCubeCoord{FIntVector(Q, R, -Q - R)};
+	// }
+	//
+	// const auto RowStart = -FMath::FloorToInt(TileConfig.Row / 2.f);
+	// const auto ColumnStart = -FMath::FloorToInt(TileConfig.Column / 2.f);
+	// if (TileConfig.TileOrientation == EHTileOrientationFlag::FLAT)
+	// {
+	// 	int32 DeltaCol = Index / TileConfig.Row;
+	// 	int32 Col = DeltaCol + ColumnStart;
+	// 	int32 Row = Index % TileConfig.Row + RowStart;
+	// 	// UE_LOG(LogHexGrid, Log, TEXT("Row: %d, Col: %d"), Row, Col);
+	// 	int32 R = Row - (Col - (Col & 1)) / 2;
+	// 	return FHCubeCoord{FIntVector(Col, R, -Col - R)};
+	// }
+	//
+	// if (TileConfig.TileOrientation == EHTileOrientationFlag::POINTY)
+	// {
+	// 	int32 DeltaRow = Index / TileConfig.Column;
+	// 	int32 Row = DeltaRow + RowStart;
+	// 	int32 Col = Index % TileConfig.Column + ColumnStart;
+	// 	// UE_LOG(LogHexGrid, Log, TEXT("Row: %d, Col: %d"), Row, Col);
+	// 	int32 Q = Col - (Row - (Row & 1)) / 2;
+	// 	return FHCubeCoord{FIntVector(Q, Row, -Q - Row)};
+	// }
+	//
+	// UE_LOG(LogHexGrid, Error, TEXT("[AHexGrid] GetHexCoordByIndex Failed, HexGrid配置错误"));
+	// return FHCubeCoord{FIntVector::ZeroValue};
 }
 
 const FHexTile& AHexGrid::GetHexTile(const FVector& InLocation)
