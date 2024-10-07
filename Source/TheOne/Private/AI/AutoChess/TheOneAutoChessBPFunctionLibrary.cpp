@@ -202,3 +202,29 @@ float UTheOneAutoChessBPFunctionLibrary::RotateToPoint(AActor* SourceActor, cons
 
 	return AngleDeg;
 }
+
+bool UTheOneAutoChessBPFunctionLibrary::JumpToPoint(AActor* SourceActor, const FVector& FromPoint,
+	const FVector& TargetPoint, float TargetHeight,float MaxHeight, float DeltaTime, float Speed)
+{
+	auto ActorLocation = SourceActor->GetActorLocation();
+	ActorLocation.Z = 0;
+	auto TotalDistance = FVector::Dist(FromPoint, TargetPoint);
+	auto RemainingDistance = FVector::Dist(ActorLocation, TargetPoint);
+
+	auto WantDistance = RemainingDistance - Speed * DeltaTime;
+
+	if (WantDistance <= 0)
+	{
+		return true;
+	}
+	
+	auto WantPercent =1.f - WantDistance / TotalDistance;
+	// 根据百分比计算当前高度, WantPercent为0时，高度为0，为0.5时，高度为MaxHeight，为1时，高度为0， sin函数满足这个条件
+	auto WantHeight = FMath::Sin(WantPercent * PI) * MaxHeight;
+	// 计算新的位置
+	auto NewLocation = FMath::Lerp(FromPoint, TargetPoint, WantPercent);
+	SourceActor->SetActorLocation(NewLocation + FVector(0, 0, WantHeight + TargetHeight));
+	
+	return false;
+}
+

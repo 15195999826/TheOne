@@ -173,7 +173,7 @@ public:
 	// UPROPERTY(BlueprintReadWrite)
 	// TMap<FHCubeCoord, int> GridCoordinates{};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
-	int32 RandomTheOne;
+	int32 RandomSeed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	float NoiseScale = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
@@ -228,11 +228,16 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	void Empty();
+	
 	void AddTile(const FRotator& Offset,const FRandomStream& RandomStream, int32 Q, int32 R);
 	FRotator GetGridRotator() const;
 
 	void UpdateHitLocation(const FVector& InHitLocation);
 
+
+	void CreateGrid(int RDSeed);
 	/**
 	* Create a new grid and fill the CubeCoordinates array.
 	* 将Actor放到关卡内，才能看到该按钮
@@ -260,6 +265,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
 	FVector HexToWorld(const FHCubeCoord& H);
 
+	UFUNCTION(BlueprintCallable, Category = "HexGrid")
+	float GetTileHeightByCoord(const FHCubeCoord& H);
+	
+	UFUNCTION(BlueprintCallable, Category = "HexGrid")
+	float GetTileHeightByIndex(int Index);
+	
 	/**
 	 * Convert coordinates from World space to Cube space.
 	 * 转换世界坐标到Cube坐标
@@ -326,12 +337,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeightOffset = 0.f);
+	
+	FHCubeCoord GetHexCoordByXY(int32 Row, int32 Column) const;
 protected:
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	FHCubeCoord GetHexCoordByXY(int32 Row, int32 Column) const;
 private:
 	FHDirections HDirections{};
 

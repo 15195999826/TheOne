@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Interface/TheOneShorcutInterface.h"
+#include "Interface/TheOneShortcutInterface.h"
 #include "Types/TheOneGridSlotType.h"
 #include "Types/TheOneItem.h"
 #include "TheOneGridSlot.generated.h"
@@ -14,7 +14,7 @@ class UTheOneItemUserWidget;
  * 
  */
 UCLASS()
-class THEONE_API UTheOneGridSlot : public UUserWidget, public ITheOneShorcutInterface
+class THEONE_API UTheOneGridSlot : public UUserWidget, public ITheOneShortcutInterface
 {
 	GENERATED_BODY()
 protected:
@@ -34,7 +34,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ExposeOnSpawn="true"))
 	ETheOneGridSlotType OwnerType;
 
-	void SetContent(UTheOneItemUserWidget* ItemWidget);
+	void SetContent(UTheOneItemUserWidget* ItemWidget) const;
 	// UFUNCTION(BlueprintImplementableEvent)
 	// void NativeCallOnChanged();
 	//

@@ -5,7 +5,7 @@
 #include "Engine/EngineTypes.h"
 #include "GameplayTagsManager.h"
 #include "TheOneLogChannels.h"
-
+#define LOCTEXT_NAMESPACE "TheOneGameplayTags"
 namespace TheOneGameplayTags
 {
 	// Vital Attribute Tags
@@ -20,11 +20,56 @@ namespace TheOneGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MagicResistance, "SetByCaller.Attribute.Vital.MagicResistance", "The magic resistance of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MoveSpeed, "SetByCaller.Attribute.Vital.MoveSpeed", "The move speed of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_TurnSpeed, "SetByCaller.Attribute.Vital.TurnSpeed", "The turn speed of an entity.");
+	auto AttributeChineseTag0 = TEXT("SetByCaller.Attribute.Vital.近战水平");
+	auto AttributeChineseTag1 = TEXT("SetByCaller.Attribute.Vital.远程水平");
+	auto AttributeChineseTag2 = TEXT("SetByCaller.Attribute.Vital.近战防御");
+	auto AttributeChineseTag3 = TEXT("SetByCaller.Attribute.Vital.远程防御");
+	auto AttributeChineseTag4 = TEXT("SetByCaller.Attribute.Vital.伤甲效率");
+	auto AttributeChineseTag5 = TEXT("SetByCaller.Attribute.Vital.穿透效率");
+	auto AttributeChineseTag6 = TEXT("SetByCaller.Attribute.Vital.Max行动点数");
+	auto AttributeChineseTag7 = TEXT("SetByCaller.Attribute.Vital.最大体力");
+	auto AttributeChineseTag8 = TEXT("SetByCaller.Attribute.Vital.负重");
+	auto AttributeChineseTag9 = TEXT("SetByCaller.Attribute.Vital.负重级别");
+	auto AttributeChineseTag10 = TEXT("SetByCaller.Attribute.Vital.速度");
+	auto AttributeChineseTag11 = TEXT("SetByCaller.Attribute.Vital.士气状态");
+	auto AttributeChineseTag12 = TEXT("SetByCaller.Attribute.Vital.意志");
+	auto AttributeChineseTag13 = TEXT("SetByCaller.Attribute.Vital.爆头率");
+	auto AttributeChineseTag14 = TEXT("SetByCaller.Attribute.Vital.视野");
+	auto AttributeChineseTag15 = TEXT("SetByCaller.Attribute.Vital.年龄");
+	auto AttributeChineseTag16 = TEXT("SetByCaller.Attribute.Runtime.头部护甲");
+	auto AttributeChineseTag17 = TEXT("SetByCaller.Attribute.Runtime.身体护甲");
+	auto AttributeChineseTag18 = TEXT("SetByCaller.Attribute.Runtime.最大头部护甲");
+	auto AttributeChineseTag19 = TEXT("SetByCaller.Attribute.Runtime.最大身体护甲");
+	auto AttributeChineseTag20 = TEXT("SetByCaller.Attribute.Runtime.行动点数");
+	auto AttributeChineseTag21 = TEXT("SetByCaller.Attribute.Runtime.体力");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MeleeLevel, AttributeChineseTag0, "近战水平");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_RangeLevel, AttributeChineseTag1, "远程水平");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MeleeDefense, AttributeChineseTag2, "近战防御");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_RangeDefense, AttributeChineseTag3, "远程防御");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_ArmorEfficiency, AttributeChineseTag4, "伤甲效率");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_PenetrationEfficiency, AttributeChineseTag5, "穿透效率");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxActionPoint, AttributeChineseTag6, "Max行动点");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxEnergy, AttributeChineseTag7, "体力");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxWeight, AttributeChineseTag8, "负重");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_WeightLevel, AttributeChineseTag9, "负重级别");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Speed, AttributeChineseTag10, "速度");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Morale, AttributeChineseTag11, "士气状态");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Will, AttributeChineseTag12, "意志");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_HeadshotRate, AttributeChineseTag13, "爆头率");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Vision, AttributeChineseTag14, "视野");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Age, AttributeChineseTag15, "年龄");
+	
 
 	// Runtime Attribute Tags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Level, "SetByCaller.Attribute.Runtime.Level", "The level of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Health, "SetByCaller.Attribute.Runtime.Health", "The current health of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Mana, "SetByCaller.Attribute.Runtime.Mana", "The current mana of an entity.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_HeadArmor, AttributeChineseTag16, "头部护甲");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_BodyArmor, AttributeChineseTag17, "身体护甲");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_MaxHeadArmor, AttributeChineseTag18, "最大头部护甲");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_MaxBodyArmor, AttributeChineseTag19, "最大身体护甲");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_ActionPoint, AttributeChineseTag20, "行动点数");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Energy, AttributeChineseTag21, "体力");
 	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Attack, "SetByCaller.Attribute.Runtime.Attack", "The current attack power of an entity.");
 	
@@ -46,6 +91,31 @@ namespace TheOneGameplayTags
 		SetByCaller_Attribute_Runtime_Level,
 		SetByCaller_Attribute_Runtime_Health,
 		SetByCaller_Attribute_Runtime_Mana
+	};
+
+	const TMap<FGameplayTag, FText> Attributes2Text ={
+		{SetByCaller_Attribute_Runtime_Health, LOCTEXT("Health", "生命值")},
+		{SetByCaller_Attribute_Vital_MaxHealth, LOCTEXT("MaxHealth", "最大生命值")},
+		{SetByCaller_Attribute_Vital_MeleeLevel, LOCTEXT("MeleeLevel", "近战水平")},
+		{SetByCaller_Attribute_Vital_RangeLevel, LOCTEXT("RangeLevel", "远程水平")},
+		{SetByCaller_Attribute_Vital_MeleeDefense, LOCTEXT("MeleeDefense", "近战防御")},
+		{SetByCaller_Attribute_Vital_RangeDefense, LOCTEXT("RangeDefense", "远程防御")},
+		{SetByCaller_Attribute_Vital_ArmorEfficiency, LOCTEXT("ArmorEfficiency", "伤甲效率")},
+		{SetByCaller_Attribute_Vital_PenetrationEfficiency, LOCTEXT("PenetrationEfficiency", "穿透效率")},
+		{SetByCaller_Attribute_Vital_MaxActionPoint, LOCTEXT("MaxActionPoint", "Max行动点")},
+		{SetByCaller_Attribute_Vital_MaxEnergy, LOCTEXT("MaxEnergy", "体力")},
+		{SetByCaller_Attribute_Vital_MaxWeight, LOCTEXT("MaxWeight", "负重")},
+		{SetByCaller_Attribute_Vital_WeightLevel, LOCTEXT("WeightLevel", "负重级别")},
+		{SetByCaller_Attribute_Vital_Speed, LOCTEXT("Speed", "速度")},
+		{SetByCaller_Attribute_Vital_Morale, LOCTEXT("Morale", "士气状态")},
+		{SetByCaller_Attribute_Vital_Will, LOCTEXT("Will", "意志")},
+		{SetByCaller_Attribute_Vital_HeadshotRate, LOCTEXT("HeadshotRate", "爆头率")},
+		{SetByCaller_Attribute_Vital_Vision, LOCTEXT("Vision", "视野")},
+		{SetByCaller_Attribute_Vital_Age, LOCTEXT("Age", "年龄")},
+		{SetByCaller_Attribute_Runtime_HeadArmor, LOCTEXT("HeadArmor", "头部护甲")},
+		{SetByCaller_Attribute_Runtime_BodyArmor, LOCTEXT("BodyArmor", "身体护甲")},
+		{SetByCaller_Attribute_Runtime_Energy, LOCTEXT("Energy", "体力")},
+		{SetByCaller_Attribute_Runtime_ActionPoint, LOCTEXT("ActionPoint", "行动点数")},
 	};
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Physical, "SetByCaller.Damage.Physical", "SetByCaller tag used by physical damage gameplay effects.");
@@ -141,4 +211,6 @@ namespace TheOneGameplayTags
 		return Tag;
 	}
 }
+
+#undef LOCTEXT_NAMESPACE
 

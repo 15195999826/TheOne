@@ -11,8 +11,9 @@
 #include "Character/TheOneCharacterBase.h"
 #include "Game/CursorTraceInterface.h"
 #include "Game/TheOneEventSystem.h"
-#include "GameFramework/HUD.h"
-#include "Kismet/GameplayStatics.h"
+#include "Widgets/SWidget.h"
+// 注意，这个Include不能删除
+#include "Widgets/SViewport.h"
 #include "Subsystems/TheOneContextSystem.h"
 
 void ATheOnePlayerControllerBase::BeginPlay()
@@ -52,6 +53,11 @@ void ATheOnePlayerControllerBase::GeneralOnHitNone()
 	
 }
 
+void ATheOnePlayerControllerBase::BP_OnHitGround_Implementation(const FVector& HitLocation, bool bIsRightClick, bool bIsLeftClick,
+	bool CanWalk)
+{
+}
+
 void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -85,7 +91,19 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 	// 	return;
 	// }
 
+	// 检查鼠标是否在UI上
+	TSharedPtr ViewPort = FSlateApplication::Get().GetGameViewport();
+
+	if (ViewPort.IsValid())
+	{
+		FWidgetPath WidgetUnderMouse = FSlateApplication::Get().LocateWindowUnderMouse(FSlateApplication::Get().GetCursorPos() , FSlateApplication::Get().GetInteractiveTopLevelWindows(), true);
+		
+		OverWidget = !(WidgetUnderMouse.IsValid() &&  WidgetUnderMouse.GetLastWidget() == ViewPort.ToSharedRef());
+	}
+	
+	
 	bool bIsRightClick = WasInputKeyJustPressed(EKeys::RightMouseButton);
+	bool bIsLeftClick = WasInputKeyJustPressed(EKeys::LeftMouseButton);
 	FHitResult HitResult;
 	bool HitGround = false;
 	FVector HitGroundLocation;
@@ -124,8 +142,8 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 			{
 				if (HitGround)
 				{
-					BP_OnHitGround(HitGroundLocation, bIsRightClick,
-					               bIsRightClick ? CanWalk(HitGroundLocation) : false);
+					BP_OnHitGround(HitGroundLocation, bIsRightClick, bIsLeftClick,
+					               bIsLeftClick ? CanWalk(HitGroundLocation) : false);
 				}
 				else if (HitCharacter)
 				{
@@ -193,7 +211,7 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 						{
 							check(SelectedCharacter);
 							ITheOneAICommandInterface::Execute_CommitAbility(
-								SelectedCharacter->GetController(), CommandTypeCache, IntPayloadCache, HitCharacter,
+								SelectedCharacter->GetController(), PayloadCache, HitCharacter,
 								HitCharacter->GetActorLocation(), ReleaseDistanceCache);
 							
 							EventSystem->OnAbilityCommandFinished.Broadcast();  
@@ -230,7 +248,7 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 					{
 						check(SelectedCharacter);
 						ITheOneAICommandInterface::Execute_CommitAbility(
-							SelectedCharacter->GetController(), CommandTypeCache, IntPayloadCache, nullptr, HitGroundLocation, ReleaseDistanceCache);
+							SelectedCharacter->GetController(), PayloadCache, nullptr, HitGroundLocation, ReleaseDistanceCache);
 						EventSystem->OnAbilityCommandFinished.Broadcast();
 							
 						HasUseAbilityCommandCache = false;
@@ -344,7 +362,7 @@ void ATheOnePlayerControllerBase::GeneralOnHitGround(const FVector& InHitLocatio
 	}
 }
 
-void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(ETheOneUseAbilityCommandType InUseAbilityCommandType, int32 IntPayload)
+void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload)
 {
 	HasUseAbilityCommandCache = false;
 	// Todo:  检查这个道具是否需要装备在角色身上才能用， 目前没有全局使用的道具
@@ -353,7 +371,7 @@ void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(ETheOneUseAbilityComm
 	{
 		return;
 	}
-	
+	auto InUseAbilityCommandType = Payload.CommandType;
 	FTheOneAbilityConfig* AbilityConfig = nullptr;
 	// Todo: 根据当前技能的使用方式， 决定目标
 	switch (InUseAbilityCommandType) {
@@ -362,18 +380,20 @@ void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(ETheOneUseAbilityComm
 		case ETheOneUseAbilityCommandType::UseWeaponAbility:
 			{
 				UTheOneGeneralGA* Ability = nullptr;
-				if (IntPayload == 1)
-				{
-					Ability = SelectedCharacter->WeakWeaponAbilityA.Get();
-				}
-				else if (IntPayload == 2)
-				{
-					Ability = SelectedCharacter->WeakWeaponAbilityB.Get();
-				}
-				else if (IntPayload == 3)
-				{
-					Ability = SelectedCharacter->WeakWeaponAbilityC.Get();
-				}
+
+				// Todo: 技能释放
+				// if (IntPayload == 1)
+				// {
+				// 	Ability = SelectedCharacter->WeakWeaponAbilityA.Get();
+				// }
+				// else if (IntPayload == 2)
+				// {
+				// 	Ability = SelectedCharacter->WeakWeaponAbilityB.Get();
+				// }
+				// else if (IntPayload == 3)
+				// {
+				// 	Ability = SelectedCharacter->WeakWeaponAbilityC.Get();
+				// }
 
 				// 因为会默认给与空技能，因此不存在空指针的情况
 				check(Ability);
@@ -391,7 +411,7 @@ void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(ETheOneUseAbilityComm
 	{
 		switch (AbilityConfig->TargetType) {
 			case ETheOneAbilityReleaseTarget::None:
-				ITheOneAICommandInterface::Execute_CommitAbility(SelectedCharacter->GetController(), InUseAbilityCommandType, IntPayload, nullptr, SelectedCharacter->GetActorLocation(), AbilityConfig->ReleaseDistance);
+				ITheOneAICommandInterface::Execute_CommitAbility(SelectedCharacter->GetController(), PayloadCache, nullptr, SelectedCharacter->GetActorLocation(), AbilityConfig->ReleaseDistance);
 				break;
 			case ETheOneAbilityReleaseTarget::Enemy:
 				HasUseAbilityCommandCache = true;
@@ -415,11 +435,10 @@ void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(ETheOneUseAbilityComm
 		if (HasUseAbilityCommandCache)
 		{
 			ReleaseDistanceCache = AbilityConfig->ReleaseDistance;
-			CommandTypeCache = InUseAbilityCommandType;
-			IntPayloadCache = IntPayload;
+			PayloadCache = Payload;
 			ShowReleaseDistanceTips();
 			auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-			EventSystem->OnAbilityCommandWaiting.Broadcast(InUseAbilityCommandType, IntPayload);
+			EventSystem->OnAbilityCommandWaiting.Broadcast(Payload);
 		}
 	}
 }

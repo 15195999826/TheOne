@@ -3,8 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TheOneDelegates.h"
 #include "GameModeComponents/TheOneAutoChessBattleComponent.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Types/TheOneBattleContext.h"
 #include "Types/TheOneFocusData.h"
 #include "TheOneEventSystem.generated.h"
 
@@ -16,7 +18,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTheOneSaveLevel, const FName&, R
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectCharacterDelegate, ATheOneCharacterBase*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGetFocusDelegate, const FTheOneFocusData&);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTheOneUseAbilityCommandSignature, ETheOneUseAbilityCommandType, CommandType, int32, IntPayload);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTheOneUseAbilityCommandSignature, const FTheOneUseAbilityCommandPayload&, Payload);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FTheOneSimpleSignature);
 /**
  * 
@@ -47,4 +50,12 @@ public:
 
 	FOnGetFocusDelegate OnGetFocus;
 	FSimpleMulticastDelegate OnLoseFocus;
+	
+	FOnTheOneOneIntParamDelegate OnSelectInBagCharacter;
+
+	FOnSelectCharacterDelegate OnCharacterGetTurn;
+	FOnSelectCharacterDelegate OnCharacterEndTurn;
+
+	// For Battle Start
+	FOnTheOneOneIntParamDelegate OnRoundBegin;
 };

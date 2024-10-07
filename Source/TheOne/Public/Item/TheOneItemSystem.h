@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Types/TheOneCharacterUnique.h"
 #include "Types/TheOneGridSlotType.h"
 #include "Types/TheOneItem.h"
 #include "TheOneItemSystem.generated.h"
@@ -13,7 +14,7 @@ struct FTheOneItemInstance
 {
 	GENERATED_BODY()
 
-	FTheOneItemInstance(): ItemID(0), ItemType(), LogicSlotID(0)
+	FTheOneItemInstance(): ItemID(0), ItemType(), LogicSlotID(INDEX_NONE)
 	{
 	}
 
@@ -67,19 +68,26 @@ public:
 	FOnTheOneItemChangedDelegate OnItemDeleted;
 	FOnTheOneItemUpdateDelegate OnItemUpdated;
 	FOnTheOneItemUpdateDelegate OnPostItemUpdated;
-	
+
 protected:
+	// <ItemID, ItemInstance>
 	TMap<int32, FTheOneItemInstance> ItemInstanceMap;
+	// <SlotID, SlotInfo>
 	TMap<int32, FTheOneLogicSlotInfo> LogicSlotMap;
 
 	// 方便快速查询
-	TMap<uint32, int32> CharacterWeaponSlotMap;
-	TMap<uint32, TArray<int32>> CharacterBagSlotMap;
+	TMap<uint32, int32> CharacterMainHandSlotMap;
+	TMap<uint32, int32> CharacterOffHandSlotMap;
+	TMap<uint32, int32> CharacterHeadSlotMap;
+	TMap<uint32, int32> CharacterLeftJewelrySlotMap;
+	TMap<uint32, int32> CharacterRightJewelrySlotMap;
+	TMap<uint32, int32> CharacterClothSlotMap;
+	TMap<uint32, TArray<int32>> CharacterStoreSlotMap;
 	TArray<int32> ShopTreasureSlotIDs;
-	
+	TArray<int32> PlayerTeamSlotIDs;
+	TArray<int32> PlayerBagSlotIDs;
 public:
-	int32 CreateItemInstance(const FDataTableRowHandle& InItemRow, ETheOneItemType InItemType, int32 InLogicSlotID = INDEX_NONE);
-	int32 CreateItemInstance(const FName& InItemRowName, ETheOneItemType InItemType, int32 InLogicSlotID = INDEX_NONE);
+	int32 CreateItemInstance(const FName& InItemRowName, ETheOneItemType InItemType, int32 InLogicSlotID = INDEX_NONE, TFunction<void(int)> DeferredFunc = nullptr);
 	void DeleteItem(int32 InItemID);
 	void DeleteItemByLogicSlotID(int32 InLogicSlotID);
 	void DeleteItemByLogicSlotID(TArray<int32> InLogicSlotIDs);
@@ -88,19 +96,24 @@ public:
 	int32 RegisterOnePlayerSlot(ETheOneGridSlotType InSlotType);
 
 	const TArray<int32>& GetShopTreasureSlotIDs() const;
-	int32 FindWeaponSlotID(uint32 CharacterAICtrlID);
-	int32 FindCharacterBagSlotID(uint32 CharacterAICtrlID, int InIndex);
+	const TArray<int32>& GetPlayerTeamSlotIDs() const;
+
+	int32 FindCharacterItemSlotID(uint32 CharacterAICtrlID, ETheOneCharacterBagSlotType InType, int InIndex = 0);
+	ETheOneCharacterBagSlotType SlotID2CharacterBagSlotType(uint32 CharacterAICtrlID, int32 InSlotID) const;
 
 	const FTheOneLogicSlotInfo* GetLogicSlotInfo(int32 InSlotID) const;
 	
-
+	int32 FindFirstEmptyTeamSlotID();
+	int32 FindFirstEmptyPlayerBagSlotID();
+	
 private:
-	int32 IntervalCreateWeaponInstance(const FName& InWeaponRowName, const FTheOneWeaponConfig* InWeaponConfig, int32 InSlotID);
-	int32 IntervalCreatePropInstance(const FName& InPropRowName, const FTheOnePropConfig* InPropConfig, int32 InSlotID);
+	int32 IntervalCreateEquipmentInstance(const FName& InWeaponRowName, const FTheOneEquipmentConfig* InWeaponConfig, int32 InSlotID, TFunction<void(int)> DeferredFunc);
+	int32 IntervalCreateMinionInstance(const FName& InCharacterConfigRowName, int32 InSlotID, TFunction<void(int)> DeferredFunc);
+
+	bool HasItemOnSlot(int SlotID);
 public:
 	const FTheOneItemInstance* FindItem(int32 InItemID) const;
-
-
+	
 private:
 	int32 NextItemID = 0;
 	int32 NextLogicSlotID = 0;

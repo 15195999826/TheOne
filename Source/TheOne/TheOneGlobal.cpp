@@ -2,5 +2,10 @@
 
 namespace TheOneGlobal
 {
-	const FName WeaponMeshTag = FName("WeaponMesh");
+	// const FName MainHandMeshTag = FName("MainHandMesh");
+	// const FName OffHandMeshTag = FName("OffHandMesh");
+	// const FName HeadMeshTag = FName("HeadMesh");
+	// const FName ClothMeshTag = FName("ClothMesh");
+	// const FName LeftJewelryMeshTag = FName("LeftJewelryMesh");
+	// const FName RightJewelryMeshTag = FName("RightJewelryMesh");
 }

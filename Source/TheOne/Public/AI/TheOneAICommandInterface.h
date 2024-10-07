@@ -30,5 +30,5 @@ public:
 	void SetAITargetActor(AActor* TargetActor);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void CommitAbility(ETheOneUseAbilityCommandType InUseAbilityCommandType, int32 InIntPayload, AActor* InTargetActor, const FVector& InLocation, int InReleaseDistance);
+	void CommitAbility(const FTheOneUseAbilityCommandPayload Payload, AActor* InTargetActor, const FVector& InLocation, int InReleaseDistance);
 };

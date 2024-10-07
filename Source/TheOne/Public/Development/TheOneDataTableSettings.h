@@ -42,7 +42,7 @@ public:
 	TSoftObjectPtr<UDataTable> ProjectileTable;
 
 	UPROPERTY(config, EditAnywhere, Category = DataTable)
-	TSoftObjectPtr<UDataTable> WeaponTable;
+	TSoftObjectPtr<UDataTable> EquipmentTable;
 	
 	UPROPERTY(config, EditAnywhere, Category = DataTable)
 	TSoftObjectPtr<UDataTable> PropTable;

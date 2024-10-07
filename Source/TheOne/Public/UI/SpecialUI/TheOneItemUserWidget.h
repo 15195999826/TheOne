@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Item/TheOneItemSystem.h"
 #include "Types/TheOneItem.h"
 #include "TheOneItemUserWidget.generated.h"
 
@@ -14,6 +15,9 @@ UCLASS()
 class THEONE_API UTheOneItemUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+protected:
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	
 public:
 	UPROPERTY(BlueprintReadOnly)
@@ -36,5 +40,8 @@ public:
 	void Clear();
 
 	UFUNCTION(BlueprintNativeEvent)
-	void SetupWeaponConfig(bool IsPreview, const FName& InRowName, const FTheOneWeaponConfig& WeaponConfig, int InItemID = -1);
+	void SetupEquipmentConfig(bool IsPreview, const FName& InRowName, const FTheOneEquipmentConfig& EquipmentConfig, int InItemID = -1);
+
+	UFUNCTION(BlueprintNativeEvent)
+	void SetupMinionConfig(bool IsPreview, FName MinionTemplateName, int32 InItemID);
 };

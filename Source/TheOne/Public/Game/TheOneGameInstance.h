@@ -32,4 +32,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FTheOneTravelInfo TravelInfo;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void ProtectInitUIRoot();
 };

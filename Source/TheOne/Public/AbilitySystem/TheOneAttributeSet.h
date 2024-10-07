@@ -116,6 +116,95 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
 	FGameplayAttributeData ProjectileSpeedMulMod; // 投射物速度修正
 	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, ProjectileSpeedMulMod);
+
+// 	近战水平
+// 远程水平
+// 近战防御
+// 远程防御
+// 伤甲效率
+// 穿透效率
+// Max行动点
+// 体力
+// 负重
+// 负重级别
+// 速度
+// 士气状态
+// 意志
+// 爆头率
+// 视野
+// 年龄
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData MeleeLevel; // 近战水平
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MeleeLevel);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData RangedLevel; // 远程水平
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, RangedLevel);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData MeleeDefense; // 近战防御
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MeleeDefense);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData RangedDefense; // 远程防御
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, RangedDefense);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData DamageArmorEfficiency; // 伤甲效率
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, DamageArmorEfficiency);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData DamagePenetrationEfficiency; // 穿透效率
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, DamagePenetrationEfficiency);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData MaxActionPoint; // Max行动点
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MaxActionPoint);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData MaxEnergy; // 体力
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MaxEnergy);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData MaxWeight; // 负重
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MaxWeight);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData WeightLevel; // 负重级别
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, WeightLevel);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData Speed; // 速度
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Speed);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData Morale; // 士气状态
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Morale);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData Will; // 意志
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Will);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData HeadshotRate; // 爆头率
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, HeadshotRate);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData Vision; // 视野
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Vision);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
+	FGameplayAttributeData Age; // 年龄
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Age);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime Attributes")
+	FGameplayAttributeData ActionPoint;
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, ActionPoint);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime Attributes")
+	FGameplayAttributeData Energy;
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Energy);
 	
 private:
 	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const;

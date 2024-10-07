@@ -58,6 +58,8 @@ protected:
 	TScriptInterface<IInHexActorInterface> InHexActorInterface;
 
 public:
+	void SetCoord(const FHCubeCoord& Coord);
+	
 	void OnAIDead();
 
 protected:

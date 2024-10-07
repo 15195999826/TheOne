@@ -26,6 +26,9 @@ class THEONE_API UTheOneAutoChessBPFunctionLibrary : public UBlueprintFunctionLi
 	
 	UFUNCTION(BlueprintCallable)
 	static float RotateToPoint(AActor* SourceActor, const FVector& TargetPoint, float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+	static bool JumpToPoint(AActor* SourceActor,const FVector& FromPoint, const FVector& TargetPoint,float TargetHeight, float MaxHeight ,float DeltaTime, float Speed);
 	
 	UFUNCTION(BlueprintCallable)
 	UAutoChessAIBBContext* GetAIBBContext(AAIController* InController);

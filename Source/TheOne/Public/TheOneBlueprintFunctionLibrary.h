@@ -12,6 +12,7 @@
 #include "Types/TheOneAdditionMesh.h"
 #include "TheOneBlueprintFunctionLibrary.generated.h"
 
+enum class ETheOneImportantUI : uint8;
 struct FGameplayAbilitySpecHandle;
 class UTheOneGeneralGA;
 enum class ETheOneUIOverlayType : uint8;
@@ -67,9 +68,22 @@ private:
 
 	// For Item
 public:
-	static void EquipWeapon(ATheOneCharacterBase* InCharacter, int32 InWeaponID);
+	inline static TMap<ETheOneCharacterBagSlotType, FName> BagSlotTypeToSocketName = {
+		{ETheOneCharacterBagSlotType::MainHand, "MainHandSocket"},
+		{ETheOneCharacterBagSlotType::OffHand, "OffHandSocket"},
+		{ETheOneCharacterBagSlotType::Head, "HeadSocket"},
+		{ETheOneCharacterBagSlotType::Cloth, "ClothSocket"},
+		{ETheOneCharacterBagSlotType::LeftJewelry, "LeftJewelrySocket"},
+		{ETheOneCharacterBagSlotType::RightJewelry, "RightJewelrySocket"},
+	};
+	
+	static void CharacterBagSlotIDToType(int32 InSlotID, ETheOneCharacterBagSlotType& OutType, int32& OutIndex);
+	
+	static void Equip(ATheOneCharacterBase* InCharacter, int32 InEquipmentID, ETheOneCharacterBagSlotType InSlotType);
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static bool CanItemDropOnCharacterBagSlot(int32 InSlotID, const FName& InItemRowName);
 private:
-	static void UnEquipWeapon(ATheOneCharacterBase* InCharacter);
+	static void UnEquip(ATheOneCharacterBase* InCharacter, ETheOneCharacterBagSlotType InSlotType);
 	
 	// For HitBox	
 public:
@@ -137,4 +151,8 @@ public:
 		UUserWidget* Widget,
 		TEnumAsByte<EHorizontalAlignment> HorizontalAlignment = HAlign_Fill,
 		TEnumAsByte<EVerticalAlignment> VerticalAlignment = VAlign_Fill);
+	UFUNCTION(BlueprintCallable, Category="TheOne|UI", meta=(WorldContext="WorldContextObject"))
+	static void ShowImportantUI(const UObject* WorldContextObject, ETheOneImportantUI InUI);
+	UFUNCTION(BlueprintCallable, Category="TheOne|UI", meta=(WorldContext="WorldContextObject"))
+	static void CloseImportantUI(const UObject* WorldContextObject, ETheOneImportantUI InUI);
 };

@@ -43,32 +43,27 @@ void UTheOneEquipItemComponent::OnItemUpdated(int32 OldSlotID, const FTheOneItem
 	if (OldSlotID != INDEX_NONE)
 	{
 		const auto& OldSlotInfo = ItemSystem->GetLogicSlotInfo(OldSlotID);
-		if (OldSlotInfo->SlotType == ETheOneGridSlotType::CharacterWeapon)
+		if (OldSlotInfo->SlotType == ETheOneGridSlotType::CharacterBag)
 		{
 			auto OldCharacter = UTheOneBlueprintFunctionLibrary::FindCharacter(this, OldSlotInfo->OwnerFlag);
 			check(OldCharacter);
-			UTheOneBlueprintFunctionLibrary::EquipWeapon(OldCharacter, INDEX_NONE);
+			auto SlotType = ItemSystem->SlotID2CharacterBagSlotType(OldSlotInfo->OwnerFlag, OldSlotID);
+			UTheOneBlueprintFunctionLibrary::Equip(OldCharacter, INDEX_NONE, SlotType);
 		}
 	}
 
 	auto SlotInfo = ItemSystem->GetLogicSlotInfo(InItemInstance.LogicSlotID);
 	check(SlotInfo);
 	switch (SlotInfo->SlotType) {
-		case ETheOneGridSlotType::None:
-		case ETheOneGridSlotType::ShopTreasure:
-			break;
-		case ETheOneGridSlotType::PlayerWeaponBag:
-			break;
-		case ETheOneGridSlotType::PlayerPropBag:
-			break;
-		case ETheOneGridSlotType::CharacterWeapon:
+		case ETheOneGridSlotType::CharacterBag:
 			{
 				auto Character = UTheOneBlueprintFunctionLibrary::FindCharacter(this, SlotInfo->OwnerFlag);
 				check(Character);
-				UTheOneBlueprintFunctionLibrary::EquipWeapon(Character, InItemInstance.ItemID);
+				auto SlotType = ItemSystem->SlotID2CharacterBagSlotType(SlotInfo->OwnerFlag, InItemInstance.LogicSlotID);
+				UTheOneBlueprintFunctionLibrary::Equip(Character, InItemInstance.ItemID, SlotType);
 			}
 			break;
-		case ETheOneGridSlotType::CharacterBag:
+		default:
 			break;
 	}
 }

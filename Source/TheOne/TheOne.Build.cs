@@ -18,7 +18,7 @@ public class TheOne : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities", "UMG",
 			"NavigationSystem", "FastNoise", "FastNoiseGenerator", "GeometryScriptingCore", "AIModule", "IKRig",
-			"Slate", "SlateCore"
+			"Slate", "SlateCore", "LomoCaptureActor"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

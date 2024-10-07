@@ -22,4 +22,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<ATheOneCharacterBase> WeakSelectedCharacter;
+	
+	UPROPERTY(BlueprintReadOnly)
+	TWeakObjectPtr<ATheOneCharacterBase> WeakBagSelectCharacter;
 };

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystem/Abilities/TheOneGeneralGA.h"
 #include "Blueprint/UserWidget.h"
-#include "Interface/TheOneShorcutInterface.h"
+#include "Interface/TheOneShortcutInterface.h"
 #include "TheOneAbilityWidget.generated.h"
 
 class UTextBlock;
@@ -14,7 +14,7 @@ class UImage;
  * 
  */
 UCLASS()
-class THEONE_API UTheOneAbilityWidget : public UUserWidget, public ITheOneShorcutInterface
+class THEONE_API UTheOneAbilityWidget : public UUserWidget, public ITheOneShortcutInterface
 {
 	GENERATED_BODY()
 
@@ -28,5 +28,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> CDText;
 	
-	void BindData(UTheOneGeneralGA* GA);
+	void BindAbilityData(UTheOneGeneralGA* GA);
+
+	void UnBindAbilityData();
 };

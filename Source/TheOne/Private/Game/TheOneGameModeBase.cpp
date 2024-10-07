@@ -18,6 +18,7 @@
 #include "Character/TheOneCharacterBase.h"
 #include "Components/WidgetComponent.h"
 #include "Development/TheOneGeneralSettings.h"
+#include "Game/TheOneGameInstance.h"
 #include "Game/GameModeComponents/TheOneAutoChessBattleComponent.h"
 #include "Game/GameStateComponets/TheOneSpawnManagerComponent.h"
 #include "GameFramework/GameStateBase.h"
@@ -207,6 +208,17 @@ void ATheOneGameModeBase::PostInitializeComponents()
 
 void ATheOneGameModeBase::BeginPlay()
 {
+	FVector A = FVector(0, 0, 0);
+	FVector B = FVector(1000, 1000, 0);
+	// 进行100次Lerp
+	for (int i = 0; i < 100; i++)
+	{
+		FVector C = FMath::Lerp(A, B, i / 100.f);
+		UE_LOG(LogTheOne, Log, TEXT("Lerp: %s"), *C.ToString());
+	}
+	
+	auto GI = GetWorld()->GetGameInstance<UTheOneGameInstance>();
+	GI->ProtectInitUIRoot();
 	Super::BeginPlay();
 }
 
@@ -249,9 +261,14 @@ void ATheOneGameModeBase::StartPlay()
 	BP_OnLevelPrepared();
 }
 
-ATheOneAIController* ATheOneGameModeBase::SpawnOneAIInternal(const TSubclassOf<ATheOneAIController> AIControllerClass,
+ATheOneAIController* ATheOneGameModeBase::SpawnOneAIInternal(TSubclassOf<ATheOneAIController> AIControllerClass,
 	const FTransform& SpawnTransform, const FTheOneAIPawnSpawnInfo& PawnSpawnInfo, bool UseTransform)
 {
+	if (OverrideAICtrl)
+	{
+		AIControllerClass = OverrideAIControllerClass;
+	}
+	
 	// Todo: 传入AI的一些初始化数据， 如出生位置等 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -374,7 +391,7 @@ ATheOneAIController* ATheOneGameModeBase::SpawnOneAIInternal(const TSubclassOf<A
 
 					// 装备默认武器
 					TheOneCharacter->DefaultWeaponRow = MinionTemplate->DefaultWeaponConfigRow.RowName;
-					UTheOneBlueprintFunctionLibrary::EquipWeapon(TheOneCharacter, INDEX_NONE);
+					UTheOneBlueprintFunctionLibrary::Equip(TheOneCharacter, INDEX_NONE, ETheOneCharacterBagSlotType::MainHand);
 				}
 				else
 				{

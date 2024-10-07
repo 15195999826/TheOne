@@ -5,16 +5,18 @@
 
 #include "Components/Image.h"
 
-void UTheOneAbilityWidget::BindData(UTheOneGeneralGA* GA)
+void UTheOneAbilityWidget::BindAbilityData(UTheOneGeneralGA* GA)
 {
-	if(GA == nullptr)
-	{
-		return;
-	}
-
 	auto ConfigRow = GA->GetAbilityRowHandle().GetRow<FTheOneAbilityConfig>("AbilityWidget.BindData");
 	if(ConfigRow)
 	{
 		Icon->SetBrushFromTexture(ConfigRow->Icon.LoadSynchronous());
 	}
+
+	Execute_BindShortcutKey(this);
+}
+
+void UTheOneAbilityWidget::UnBindAbilityData()
+{
+	Execute_UnBindShortcutKey(this);
 }

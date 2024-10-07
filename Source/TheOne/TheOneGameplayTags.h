@@ -10,6 +10,7 @@ namespace TheOneGameplayTags
 	
 	THEONE_API	extern const TArray<FGameplayTag> VitalAttributes;
 	THEONE_API	extern const TArray<FGameplayTag> RuntimeAttributes;
+	THEONE_API	extern const TMap<FGameplayTag, FText> Attributes2Text;
 
 	// Vital Attribute Tags
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MaxHealth);
@@ -17,17 +18,57 @@ namespace TheOneGameplayTags
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_HealthRegen);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_ManaRegen);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Attack);
-	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_AttackRange);
+	THEONE_API	  UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_AttackRange);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_AttackSpeed);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Armor);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MagicResistance);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MoveSpeed);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_TurnSpeed);
 
+	// 近战水平
+	// 远程水平
+	// 近战防御
+	// 远程防御
+	// 伤甲效率
+	// 穿透效率
+	// Max行动点
+	// 体力
+	// 负重
+	// 负重级别
+	// 速度
+	// 士气状态
+	// 意志
+	// 爆头率
+	// 视野
+	// 年龄
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MeleeLevel);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_RangeLevel);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MeleeDefense);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_RangeDefense);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_ArmorEfficiency);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_PenetrationEfficiency);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MaxActionPoint);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MaxEnergy);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MaxWeight);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_WeightLevel);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Speed);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Morale);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Will);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_HeadshotRate);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Vision);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_Age);
+
 	// Runtime Attribute Tags
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_Level);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_Health);
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_Mana);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_MaxHeadArmor);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_HeadArmor);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_MaxBodyArmor);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_BodyArmor);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_ActionPoint);
+	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Runtime_Energy);
+	
 
 	// Damage Tags
 	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage_Physical);

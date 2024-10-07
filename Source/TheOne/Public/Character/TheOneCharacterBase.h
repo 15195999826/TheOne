@@ -19,6 +19,18 @@ class UWidgetComponent;
 class UTheOneGameplayAbility;
 class UTheOneAttributeSet;
 
+USTRUCT()
+struct FTheOneAbilityCache
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	FGameplayAbilitySpecHandle AbilitySpecHandle;
+	
+	UPROPERTY()
+	TWeakObjectPtr<UTheOneGeneralGA> AbilityGA;
+};
+
 DECLARE_MULTICAST_DELEGATE(FOnTheOneCharacterDeadSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterEnterNewCoordSignature, const FHCubeCoord&, InCoord);
 UCLASS()
@@ -48,21 +60,24 @@ public:
 	FName DefaultWeaponRow;
 
 	UPROPERTY(BlueprintReadOnly)
-	int32 WeaponID = INDEX_NONE;
-	
-	// 普攻技能，未装备武器时需要设置默认值； 装备武器后替换为武器默认攻击
-	FGameplayAbilitySpecHandle AttackAbilitySpecHandle;
-	TWeakObjectPtr<UTheOneAttackGA> AttackGA;
+	int32 MainHandItemID = INDEX_NONE;
 
-	// Weapon Ability
-	// 装备武器后赋予的普攻技能
+	UPROPERTY(BlueprintReadOnly)
+	int32 OffHandItemID = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 HeadItemID = INDEX_NONE;
 	
-	FGameplayAbilitySpecHandle WeaponAbilityASpecHandle;
-	TWeakObjectPtr<UTheOneGeneralGA> WeakWeaponAbilityA;
-	FGameplayAbilitySpecHandle WeaponAbilityBSpecHandle;
-	TWeakObjectPtr<UTheOneGeneralGA> WeakWeaponAbilityB;
-	FGameplayAbilitySpecHandle WeaponAbilityCSpecHandle;
-	TWeakObjectPtr<UTheOneGeneralGA> WeakWeaponAbilityC;
+	UPROPERTY(BlueprintReadOnly)
+	int32 ClothItemID = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 LeftJewelryItemID = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 RightJewelryItemID = INDEX_NONE;
+	
+	TMap<int32, TArray<FTheOneAbilityCache>> AbilityCaches;
 	
 	// 角色自带技能Map
 	TMap<FGameplayAbilitySpecHandle, TWeakObjectPtr<UTheOneGeneralGA>> CharacterAbilityMap;
@@ -70,9 +85,6 @@ public:
 	// 数据驱动被动技能
 	FGameplayAbilitySpecHandle DataDrivePassiveSpecHandle;
 	TWeakObjectPtr<UTheOneDataDrivePassiveGA> DataDrivePassiveGA;
-	
-	UPROPERTY()
-	FGameplayAbilitySpecHandle MainAbilitySpecHandle;
 	
 protected:
 	UPROPERTY()

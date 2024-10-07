@@ -42,6 +42,22 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Vital Attributes")
 	FGameplayAttributeData ManaRegen;
 	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, ManaRegen);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime Attributes")
+	FGameplayAttributeData MaxHeadArmor;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, MaxHeadArmor);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime Attributes")
+	FGameplayAttributeData HeadArmor;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, HeadArmor);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime Attributes")
+	FGameplayAttributeData MaxBodyArmor;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, MaxBodyArmor);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Runtime Attributes")
+	FGameplayAttributeData BodyArmor;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, BodyArmor);
 	/*
 	 * 隐藏属性
 	 */

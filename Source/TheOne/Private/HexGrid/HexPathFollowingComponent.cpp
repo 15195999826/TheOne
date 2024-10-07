@@ -92,6 +92,12 @@ void UHexPathFollowingComponent::OnPathFinished(const FPathFollowingResult& Resu
 	Super::OnPathFinished(Result);
 }
 
+void UHexPathFollowingComponent::SetCoord(const FHCubeCoord& Coord)
+{
+	BookHexCoord(Coord);
+	EnterHexCoord(Coord);
+}
+
 void UHexPathFollowingComponent::OnAIDead()
 {
 	FHexTile& Tile = HexMesh->HexGrid->GetMutableHexTile(CurrentCoord);

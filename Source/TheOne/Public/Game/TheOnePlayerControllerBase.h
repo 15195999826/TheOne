@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "TheOneEventSystem.h"
 #include "GameFramework/PlayerController.h"
+#include "Types/TheOneUseAbilityCommandType.h"
 #include "TheOnePlayerControllerBase.generated.h"
+
 
 UENUM(BlueprintType)
 enum class ETheOneCursorState : uint8
@@ -47,6 +49,7 @@ protected:
 	// Todo: 需要做到当前队列中存在某一个Consume消耗此输入时，其它Action不再触发， 用于实现游戏内不同情况下按ESC结果不同的情况
 	TMap<int, int> InputID2IndexMap;
 	TArray<URegisterInputActionTask*> InputTasks;
+	bool OverWidget;
 
 public:
 	virtual void BeginPlay() override;
@@ -64,8 +67,8 @@ protected:
 	
 	virtual bool CanWalk(const FVector& InLocation) const { return true; }
 	
-	UFUNCTION(BlueprintImplementableEvent)
-	void BP_OnHitGround(const FVector& HitLocation, bool bIsRightClick, bool CanWalk);
+	UFUNCTION(BlueprintNativeEvent)
+	void BP_OnHitGround(const FVector& HitLocation, bool bIsRightClick, bool bIsLeftClick, bool CanWalk);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void BP_OnHitActor(AActor* InHitActor, bool bIsRightClick);
@@ -81,12 +84,11 @@ protected:
 	// For UseAbilityCommand
 protected:
 	bool HasUseAbilityCommandCache = false;
-	ETheOneUseAbilityCommandType CommandTypeCache;
-	int32 IntPayloadCache;
+	FTheOneUseAbilityCommandPayload PayloadCache;
 	int ReleaseDistanceCache;
 	
 	UFUNCTION()
-	void ReceiveUseAbilityCommand(ETheOneUseAbilityCommandType CommandType, int32 IntPayload);
+	virtual void ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload);
 
 	virtual void ShowReleaseDistanceTips();
 	UFUNCTION()

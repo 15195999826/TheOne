@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/AutoChess/AITask_AutoChessMoveTo.h"
 #include "Game/TheOnePlayerControllerBase.h"
 #include "HexGrid/HGTypes.h"
 #include "Types/TheOneFocusData.h"
@@ -20,7 +21,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	bool PostRealHitLocation = false;
 
+	UPROPERTY(BlueprintReadOnly)
+	TWeakObjectPtr<ATheOneCharacterBase> ActiveCharacter;
+	UPROPERTY(BlueprintReadOnly)
+	TWeakObjectPtr<AAIController> ActiveAI;
+
 public:
+	void ChangeActiveCharacter(ATheOneCharacterBase* InCharacter);
+	
 	const ATheOneCharacterBase* GetSelectedCharacter() const { return SelectedCharacter; }
 
 	void PlayInEditor() { bPlayInEditor = true; }
@@ -29,6 +37,7 @@ public:
 	bool IsPlayInEditor() const { return bPlayInEditor; }
 	
 protected:
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	
 	virtual void GeneralOnHitGround(const FVector& InHitLocation, FVector& OutGroundLocation) override;
@@ -41,6 +50,7 @@ protected:
 	
 	virtual void HideReleaseDistanceTips() override;
 
+	virtual void BP_OnHitGround_Implementation(const FVector& HitLocation, bool bIsRightClick, bool bIsLeftClick, bool CanWalk) override;
 private:
 	bool bPlayInEditor = false;
 
@@ -59,4 +69,22 @@ private:
 	TWeakObjectPtr<ATheOneCharacterBase> FocusCharacter;
 	float FocusTimer = 0.0f;
 	bool Focusing = false;
+
+	// For PathFinding
+protected:
+	bool IsCommanding = false;
+	FVector CurrentGoalLocation;
+	FAIMoveRequest MoveRequest;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> PathTipClass;
+	UPROPERTY()
+	TArray<AActor*> ShowingPathTips;
+	UPROPERTY()
+	TArray<AActor*> PathTipPool;
+	AActor* GetPathTip();
+	void ReleasePathTip(AActor* InTip);
+
+	// For UseAbilityCommand
+protected:
+	virtual void ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload) override;
 };

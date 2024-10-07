@@ -48,9 +48,6 @@ protected:
 	bool bTicking = false;
 
 public:
-	UFUNCTION(BlueprintCallable)
-	void StartBattle();
-	
 	const TArray<TWeakObjectPtr<ATheOneAutoChessAIController>>& GetEnemies(ATheOneCharacterBase* InTheOneCharacter);
 
 protected:

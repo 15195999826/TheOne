@@ -6,6 +6,8 @@
 #include "Components/ActorComponent.h"
 #include "TheOneMainGameProgressComponent.generated.h"
 
+class ATheOneBattle;
+
 UENUM(BlueprintType)
 enum class ETheOneGameProgress : uint8
 {
@@ -14,7 +16,6 @@ enum class ETheOneGameProgress : uint8
 	Task,
 	Battle
 };
-
 
 
 UCLASS(Blueprintable, ClassGroup=(TheOneGameModeComponent), meta=(BlueprintSpawnableComponent) )
@@ -26,10 +27,22 @@ public:
 	// Sets default values for this component's properties
 	UTheOneMainGameProgressComponent();
 
+	
 protected:
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<ATheOneBattle> BattleLogicClass;
+
+	// Todo: 临时允许蓝图获取
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<ATheOneBattle> Battle;
+	
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+public:
+	UFUNCTION(BlueprintCallable)
+	void EnterBattle();
 
-public:	
-		
+private:
+	void OnLevelPrepared();
 };

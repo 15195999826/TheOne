@@ -45,6 +45,26 @@ void AHexGrid::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void AHexGrid::Empty()
+{
+	GridTiles.Empty();
+	auto MeshComs = SceneRoot->GetAttachChildren();
+	TArray<UInstancedStaticMeshComponent*> MeshComsCache;
+	for (auto MeshCom : MeshComs)
+	{
+		if (auto Mesh = Cast<UInstancedStaticMeshComponent>(MeshCom))
+		{
+			Mesh->ClearInstances();
+		}
+	}
+}
+
+void AHexGrid::CreateGrid(int RDSeed)
+{
+	RandomSeed = RDSeed;
+	CreateGrid();
+}
+
 void AHexGrid::CreateGrid()
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateGrid);
@@ -88,7 +108,7 @@ void AHexGrid::CreateGrid()
 		EnvironmentMeshes.Add(Pair.Key, GetCom);
 	}
 
-	FRandomStream RandomStream{ RandomTheOne };
+	FRandomStream RandomStream{ RandomSeed };
 
 	// Todo: 先跑通网格-》地图-》移动的流程，再思考地图随机规则， 先用柏林噪声生成地图
 	FastNoiseWrapper = NewObject<UFastNoiseWrapper>();
@@ -469,6 +489,25 @@ FVector AHexGrid::HexToWorld(const FHCubeCoord& H)
 	return FVector(x + TileConfig.Origin.X, y + TileConfig.Origin.Y, TileConfig.Origin.Z);
 }
 
+float AHexGrid::GetTileHeightByCoord(const FHCubeCoord& H)
+{
+	auto Index = GetHexTileIndex(H);
+	return GetTileHeightByIndex(Index);
+}
+
+float AHexGrid::GetTileHeightByIndex(int Index)
+{
+	if (Index == INDEX_NONE)
+	{
+		return 0.f;
+	}
+
+	const auto& Tile = GridTiles[Index];
+	float ScaleZ =  (Tile.Height - 1) * TileConfig.RenderHeightScale;
+	ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
+	return ScaleZ * TileConfig.BaseRenderHeight;
+}
+
 FHCubeCoord AHexGrid::WorldToHex(const FVector &Location)
 {
 	// Set the layout orientation
@@ -784,12 +823,11 @@ void AHexGrid::SetWireFrameColor(int Index, const FLinearColor& InColor, float N
 {
 	TArray<float> CustomData {InColor.R, InColor.G, InColor.B, InColor.A};
 	HexGridWireframe->SetCustomData(Index, CustomData);
+	auto Height = GetTileHeightByIndex(Index);
 	const auto& Tile = GridTiles[Index];
-	float ScaleZ =  (Tile.Height - 1) * TileConfig.RenderHeightScale;
-	ScaleZ = ScaleZ<=0.1f? 1.0f : ScaleZ;
 	FTransform Transform ;
 	HexGridWireframe->GetInstanceTransform(Index, Transform, true);
-	Transform.SetLocation(Tile.WorldPosition + FVector(0.f, 0.f, ScaleZ * TileConfig.BaseRenderHeight + WireframeOffsetZ + NewHeightOffset));
+	Transform.SetLocation(Tile.WorldPosition + FVector(0.f, 0.f, Height + WireframeOffsetZ + NewHeightOffset));
 	HexGridWireframe->UpdateInstanceTransform(Index,Transform, true);
 }
 

@@ -148,111 +148,183 @@ bool UTheOneBlueprintFunctionLibrary::TheOneGiveAbility(UAbilitySystemComponent*
 	return false;
 }
 
-void UTheOneBlueprintFunctionLibrary::EquipWeapon(ATheOneCharacterBase* InCharacter, int32 InWeaponID)
+void UTheOneBlueprintFunctionLibrary::Equip(ATheOneCharacterBase* InCharacter, int32 InEquipmentID, ETheOneCharacterBagSlotType InSlotType)
 {
-	if (InCharacter->AttackGA.IsValid() && InWeaponID == InCharacter->WeaponID)
-	{
-		UE_LOG(LogTheOne, Error, TEXT("Character %s has already equipped Weapon %d."), *InCharacter->GetName(), InWeaponID);
-		return;
-	}
+	UnEquip(InCharacter, InSlotType);
 
-	UnEquipWeapon(InCharacter);
-	FTheOneWeaponConfig* FindRow;
-	auto DT = GetDefault<UTheOneDataTableSettings>()->WeaponTable.LoadSynchronous();
-	if (InWeaponID != INDEX_NONE)
+	auto DT = GetDefault<UTheOneDataTableSettings>()->EquipmentTable.LoadSynchronous();
+	FTheOneEquipmentConfig* FindRow = nullptr;
+	if (InEquipmentID == INDEX_NONE)
 	{
-		auto Weapon = InCharacter->GetWorld()->GetSubsystem<UTheOneItemSystem>()->FindItem(InWeaponID);
-		check(Weapon)
-	
-		// 检查角色是否装备了武器, 如果装备了武器，先走UnEquipWeapon
-		FindRow = DT->FindRow<FTheOneWeaponConfig>(Weapon->ItemRowName,"UTheOneBlueprintFunctionLibrary::EquipWeapon");
+		if (InSlotType == ETheOneCharacterBagSlotType::MainHand)
+		{
+			FindRow = DT->FindRow<FTheOneEquipmentConfig>(InCharacter->DefaultWeaponRow, "UTheOneBlueprintFunctionLibrary::EquipDefaultWeapon");
+		}
 	}
 	else
 	{
-		FindRow = DT->FindRow<FTheOneWeaponConfig>(InCharacter->DefaultWeaponRow, "UTheOneBlueprintFunctionLibrary::EquipDefaultWeapon");
+		auto Equipment = InCharacter->GetWorld()->GetSubsystem<UTheOneItemSystem>()->FindItem(InEquipmentID);
+		check(Equipment)
+	
+		// 检查角色是否装备了武器, 如果装备了武器，先走UnEquipWeapon
+		FindRow = DT->FindRow<FTheOneEquipmentConfig>(Equipment->ItemRowName,"UTheOneBlueprintFunctionLibrary::Equip");
 	}
-	check(FindRow)
 
-	for (const auto& AdditionMesh : FindRow->WeaponMesh)
+	if (FindRow == nullptr)
 	{
-		AttachAdditionMeshToCharacter(InCharacter, AdditionMesh, TheOneGlobal::WeaponMeshTag);
+		UE_LOG(LogTheOne, Log, TEXT("Equip InSlotType: %d, To Empty"), InSlotType);
+		return;
+	}
+
+
+	const auto& ToAppendTag = BagSlotTypeToSocketName.Contains(InSlotType)? BagSlotTypeToSocketName[InSlotType] : NAME_None;
+	for (const auto& AdditionMesh : FindRow->AdditionMeshes)
+	{
+		AttachAdditionMeshToCharacter(InCharacter, AdditionMesh, ToAppendTag);
+	}
+
+	switch (InSlotType)
+	{
+		case ETheOneCharacterBagSlotType::MainHand:
+			InCharacter->MainHandItemID = InEquipmentID;
+			break;
+		case ETheOneCharacterBagSlotType::OffHand:
+			InCharacter->OffHandItemID = InEquipmentID;
+			break;
+		case ETheOneCharacterBagSlotType::Head:
+			InCharacter->HeadItemID = InEquipmentID;
+			break;
+		case ETheOneCharacterBagSlotType::Cloth:
+			InCharacter->ClothItemID = InEquipmentID;
+			break;
+		case ETheOneCharacterBagSlotType::LeftJewelry:
+			InCharacter->LeftJewelryItemID = InEquipmentID;
+			break;
+		case ETheOneCharacterBagSlotType::RightJewelry:
+			InCharacter->RightJewelryItemID = InEquipmentID;
+			break;
+		case ETheOneCharacterBagSlotType::Store:
+			break;
 	}
 	
 	auto ASC = InCharacter->GetAbilitySystemComponent();
-	InCharacter->WeaponID = InWeaponID;
 
+	// Todo: 处理属性
 	// 覆写角色攻击力、攻击速度、攻击范围
-	auto GSettings = GetDefault<UTheOneGeneralSettings>();
-	auto SpecHandle = SimpleMakeGESpecHandle(InCharacter, GSettings->InitWeaponVitalAttributeSetEffect, 1);
+	// auto GSettings = GetDefault<UTheOneGeneralSettings>();
+	// auto SpecHandle = SimpleMakeGESpecHandle(InCharacter, GSettings->InitWeaponVitalAttributeSetEffect, 1);
+	//
+	// UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Attribute_Vital_Attack, FindRow->AttackAbility.Attack);
+	// UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Attribute_Vital_AttackRange, FindRow->AttackAbility.AttackRange);
+	// UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Attribute_Vital_AttackSpeed, FindRow->AttackAbility.AttackSpeed);
+	// 			
+	// InCharacter->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Attribute_Vital_Attack, FindRow->AttackAbility.Attack);
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Attribute_Vital_AttackRange, FindRow->AttackAbility.AttackRange);
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Attribute_Vital_AttackSpeed, FindRow->AttackAbility.AttackSpeed);
-				
-	InCharacter->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	// 给与普攻
-	auto GeneralSettings = GetDefault<UTheOneGeneralSettings>();
-	InCharacter->AttackAbilitySpecHandle = ASC->GiveAbility(FGameplayAbilitySpec(GeneralSettings->DefaultAttackGA, 1));
-	auto InstancedAbility = Cast<UTheOneAttackGA>(ASC->FindAbilitySpecFromHandle(InCharacter->AttackAbilitySpecHandle)->GetPrimaryInstance());
-	InstancedAbility->SetupAttackAbility(FindRow->AttackAbility);
-	InCharacter->AttackGA = InstancedAbility;
-	
-	// 给予其它武器技能
-	UTheOneGeneralGA* WeaponAbilityA = nullptr;
-	if (TheOneGiveAbility(ASC, FindRow->AbilityA.RowName, InCharacter->WeaponAbilityASpecHandle, WeaponAbilityA))
+	// 给与技能
+	auto& CacheArray = InCharacter->AbilityCaches.FindOrAdd(InEquipmentID);
+	for (const auto& AbilityRow : FindRow->Abilities)
 	{
-		InCharacter->WeakWeaponAbilityA = WeaponAbilityA;
+		UTheOneGeneralGA* WeaponAbility = nullptr;
+		FGameplayAbilitySpecHandle OutGAHandle;
+		if (TheOneGiveAbility(ASC, AbilityRow.RowName, OutGAHandle, WeaponAbility))
+		{
+			FTheOneAbilityCache Cache;
+			Cache.AbilitySpecHandle = OutGAHandle;
+			Cache.AbilityGA = WeaponAbility;
+			CacheArray.Add(Cache);
+		}
 	}
 	
-	UTheOneGeneralGA* WeaponAbilityB = nullptr;
-	if (TheOneGiveAbility(ASC, FindRow->AbilityB.RowName, InCharacter->WeaponAbilityBSpecHandle, WeaponAbilityB))
+	// 主手需要更新角色动画
+	if (InSlotType == ETheOneCharacterBagSlotType::MainHand)
 	{
-		InCharacter->WeakWeaponAbilityB = WeaponAbilityB;
+		auto AnimInstance = InCharacter->GetMesh()->GetAnimInstance();
+		ITheOneCharacterABPInterface::Execute_OnChangeWeapon(AnimInstance, FindRow->AnimBPConfigRow);
 	}
-
-	UTheOneGeneralGA* WeaponAbilityC = nullptr;
-	if (TheOneGiveAbility(ASC, FindRow->AbilityC.RowName, InCharacter->WeaponAbilityCSpecHandle, WeaponAbilityC))
-	{
-		InCharacter->WeakWeaponAbilityC = WeaponAbilityC;
-	}
-
-	// 更新动画
-	auto AnimInstance = InCharacter->GetMesh()->GetAnimInstance();
-	ITheOneCharacterABPInterface::Execute_OnChangeWeapon(AnimInstance, FindRow->AnimBPConfigRow);
 }
 
-void UTheOneBlueprintFunctionLibrary::UnEquipWeapon(ATheOneCharacterBase* InCharacter)
+bool UTheOneBlueprintFunctionLibrary::CanItemDropOnCharacterBagSlot(int32 InSlotID, const FName& InItemRowName)
+{
+	int Index;
+	ETheOneCharacterBagSlotType SlotType;
+	CharacterBagSlotIDToType(InSlotID, SlotType, Index);
+	auto DT = GetDefault<UTheOneDataTableSettings>()->EquipmentTable.LoadSynchronous();
+	auto FindRow = DT->FindRow<FTheOneEquipmentConfig>(InItemRowName, "UTheOneBlueprintFunctionLibrary::CanItemDropOnCharacterBagSlot");
+	if (FindRow == nullptr)
+	{
+		return false;
+	}
+
+	switch (SlotType) {
+		case ETheOneCharacterBagSlotType::MainHand:
+			return FindRow->PropType == ETheOnePropType::Weapon;
+		case ETheOneCharacterBagSlotType::OffHand:
+			return (FindRow->PropType == ETheOnePropType::Weapon && FindRow->bTwoHanded) || FindRow->PropType == ETheOnePropType::Shield || FindRow->PropType == ETheOnePropType::Consumable;
+		case ETheOneCharacterBagSlotType::Head:
+			return FindRow->PropType == ETheOnePropType::Head;
+		case ETheOneCharacterBagSlotType::Cloth:
+			return FindRow->PropType == ETheOnePropType::Cloth;
+		case ETheOneCharacterBagSlotType::LeftJewelry:
+			return FindRow->PropType == ETheOnePropType::Jewelry;
+		case ETheOneCharacterBagSlotType::RightJewelry:
+			return FindRow->PropType == ETheOnePropType::Jewelry;
+		case ETheOneCharacterBagSlotType::Store:
+			return true;
+	}
+
+	return false;
+}
+
+void UTheOneBlueprintFunctionLibrary::UnEquip(ATheOneCharacterBase* InCharacter, ETheOneCharacterBagSlotType InSlotType)
 {
 	auto ASC = InCharacter->GetAbilitySystemComponent();
-	if (InCharacter->AttackAbilitySpecHandle.IsValid())
+	int32 ToClearItemID = INDEX_NONE;
+	FName ToClearTagName = BagSlotTypeToSocketName.Contains(InSlotType)? BagSlotTypeToSocketName[InSlotType] : NAME_None;
+	switch (InSlotType)
 	{
-		// 移除技能
-		ASC->ClearAbility(InCharacter->AttackAbilitySpecHandle);
-	}
-	if (InCharacter->WeaponAbilityASpecHandle.IsValid())
-	{
-		// 移除技能
-		ASC->ClearAbility(InCharacter->WeaponAbilityASpecHandle);
-	}
-	if (InCharacter->WeaponAbilityBSpecHandle.IsValid())
-	{
-		// 移除技能
-		ASC->ClearAbility(InCharacter->WeaponAbilityBSpecHandle);
-	}
-	if (InCharacter->WeaponAbilityCSpecHandle.IsValid())
-	{
-		// 移除技能
-		ASC->ClearAbility(InCharacter->WeaponAbilityCSpecHandle);
+		case ETheOneCharacterBagSlotType::MainHand:
+			ToClearItemID = InCharacter->MainHandItemID;
+			break;
+		case ETheOneCharacterBagSlotType::OffHand:
+			ToClearItemID = InCharacter->OffHandItemID;
+			break;
+		case ETheOneCharacterBagSlotType::Head:
+			ToClearItemID = InCharacter->HeadItemID;
+			break;
+		case ETheOneCharacterBagSlotType::Cloth:
+			ToClearItemID = InCharacter->ClothItemID;
+			break;
+		case ETheOneCharacterBagSlotType::LeftJewelry:
+			ToClearItemID = InCharacter->LeftJewelryItemID;
+			break;
+		case ETheOneCharacterBagSlotType::RightJewelry:
+			ToClearItemID = InCharacter->RightJewelryItemID;
+			break;
+		case ETheOneCharacterBagSlotType::Store:
+			break;
 	}
 
-	TArray<USceneComponent*> Children;
-	InCharacter->OutlookMesh->GetChildrenComponents(true,Children);
-
-	for (auto Child : Children)
+	if (InCharacter->AbilityCaches.Contains(ToClearItemID))
 	{
-		if (Child->ComponentHasTag(TheOneGlobal::WeaponMeshTag))
+		const auto& Abilities = InCharacter->AbilityCaches[ToClearItemID];
+		for (const auto& Ability : Abilities)
 		{
-			Child->DestroyComponent();
+			ASC->ClearAbility(Ability.AbilitySpecHandle);
+		}
+		InCharacter->AbilityCaches.Remove(ToClearItemID);
+	}
+
+	if (ToClearTagName != NAME_None)
+	{
+		TArray<USceneComponent*> Children;
+		InCharacter->OutlookMesh->GetChildrenComponents(true, Children);
+
+		for (auto Child : Children)
+		{
+			if (Child->ComponentHasTag(ToClearTagName))
+			{
+				Child->DestroyComponent();
+			}
 		}
 	}
 }
@@ -465,6 +537,22 @@ FTheOneAbilityActionData UTheOneBlueprintFunctionLibrary::CastConfigToAbilityAct
 	return Ret;
 }
 
+void UTheOneBlueprintFunctionLibrary::CharacterBagSlotIDToType(int32 InSlotID, ETheOneCharacterBagSlotType& OutType,
+	int32& OutIndex)
+{
+	int32 Index = InSlotID % 60000;
+	if (Index >= 6)
+	{
+		OutType = ETheOneCharacterBagSlotType::Store;
+		OutIndex = Index - 6;
+	}
+	else
+	{
+		OutType = static_cast<ETheOneCharacterBagSlotType>(Index);
+		OutIndex = 0;
+	}
+}
+
 void UTheOneBlueprintFunctionLibrary::EnableUINav()
 {
 	FNavigationConfig& NavConfig = *FSlateApplication::Get().GetNavigationConfig();
@@ -660,5 +748,17 @@ void UTheOneBlueprintFunctionLibrary::PushUI(const UObject* WorldContextObject, 
 {
 	auto TheOneGI = Cast<UTheOneGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
 	TheOneGI->UIRoot->PushUI(OverlayType, Widget, HorizontalAlignment, VerticalAlignment);
+}
+
+void UTheOneBlueprintFunctionLibrary::ShowImportantUI(const UObject* WorldContextObject, ETheOneImportantUI InUI)
+{
+	auto TheOneGI = Cast<UTheOneGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+	TheOneGI->UIRoot->ShowImportantUI(InUI);
+}
+
+void UTheOneBlueprintFunctionLibrary::CloseImportantUI(const UObject* WorldContextObject, ETheOneImportantUI InUI)
+{
+	auto TheOneGI = Cast<UTheOneGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
+	TheOneGI->UIRoot->CloseImportantUI(InUI);
 }
 

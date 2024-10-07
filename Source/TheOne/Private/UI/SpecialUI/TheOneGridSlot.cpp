@@ -21,7 +21,7 @@ void UTheOneGridSlot::NativePreConstruct()
 }
 
 bool UTheOneGridSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
-                                 UDragDropOperation* InOperation)
+                                   UDragDropOperation* InOperation)
 {
 	auto ItemVC = Cast<UTheOneItemUserWidget>(InOperation->Payload);
 	if(CanDropOnSlot(ItemVC))
@@ -44,10 +44,20 @@ void UTheOneGridSlot::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, U
 	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
 }
 
-void UTheOneGridSlot::SetContent(UTheOneItemUserWidget* ItemWidget)
+void UTheOneGridSlot::SetContent(UTheOneItemUserWidget* ItemWidget) const
 {
-	DropOnSlot->RemoveChildAt(0);
+	auto FirstChild = DropOnSlot->GetChildAt(0);
+	if (FirstChild)
+	{
+		// Todo: 把旧的ItemWidget放回Pool中保存
+		auto TheOneGameInstance = GetWorld()->GetGameInstance<UTheOneGameInstance>();
+		TheOneGameInstance->UIRoot->HideItemWidget(CastChecked<UTheOneItemUserWidget>(FirstChild));
+	}
 	
+	if (!ItemWidget)
+	{
+		return;
+	}
 	ItemWidget->SetVisibility(ESlateVisibility::Visible);
 	DropOnSlot->AddChild(ItemWidget);
 }

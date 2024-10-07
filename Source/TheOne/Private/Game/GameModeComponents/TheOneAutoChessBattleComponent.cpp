@@ -118,26 +118,6 @@ void UTheOneAutoChessBattleComponent::TickComponent(float DeltaTime, ELevelTick 
 	BattleTick(DeltaTime);
 }
 
-
-void UTheOneAutoChessBattleComponent::StartBattle()
-{
-	for (auto& PlayerCtrl : PlayerCtrls)
-	{
-		if (PlayerCtrl.IsValid())
-		{
-			PlayerCtrl->StartAI();
-		}
-	}
-	
-	for (auto& EnemyCtrl : EnemyCtrls)
-	{
-		if (EnemyCtrl.IsValid())
-		{
-			EnemyCtrl->StartAI();
-		}
-	}
-}
-
 const TArray<TWeakObjectPtr<ATheOneAutoChessAIController>>& UTheOneAutoChessBattleComponent::GetEnemies(
 	ATheOneCharacterBase* InTheOneCharacter)
 {

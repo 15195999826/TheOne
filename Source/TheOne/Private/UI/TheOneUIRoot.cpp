@@ -3,12 +3,16 @@
 
 #include "UI/TheOneUIRoot.h"
 
+#include "TheOneBlueprintFunctionLibrary.h"
 #include "TheOneLogChannels.h"
 #include "Character/TheOneCharacterBase.h"
 #include "Components/OverlaySlot.h"
 #include "Development/TheOneDataTableSettings.h"
+#include "Interface/TheOneActivableWindowInterface.h"
 #include "Item/TheOneItemSystem.h"
 #include "Subsystems/TheOneContextSystem.h"
+#include "UI/SpecialUI/TheOneMainWindow.h"
+#include "UI/SpecialUI/TheOneBattleWindow.h"
 
 #include "UI/SpecialUI/TheOneGridSlot.h"
 
@@ -24,6 +28,8 @@ void UTheOneUIRoot::NativeConstruct()
 void UTheOneUIRoot::PushUI(ETheOneUIOverlayType OverlayType, UUserWidget* Widget,
                          TEnumAsByte<EHorizontalAlignment> HorizontalAlignment, TEnumAsByte<EVerticalAlignment> VerticalAlignment) const
 {
+	// Todo: UIPolicy, 是否单例等
+	
 	switch (OverlayType)
 	{
 		case ETheOneUIOverlayType::BackEnd:
@@ -41,6 +47,48 @@ void UTheOneUIRoot::PushUI(ETheOneUIOverlayType OverlayType, UUserWidget* Widget
 	OverlaySlot->SetVerticalAlignment(VerticalAlignment);
 }
 
+void UTheOneUIRoot::ShowImportantUI(ETheOneImportantUI InUI)
+{
+	switch (InUI) {
+		case ETheOneImportantUI::MainWindow:
+			{
+				if (MainWindow == nullptr)
+				{
+					MainWindow = CreateWidget<UTheOneMainWindow>(this, MainWindowClass);
+					PushUI(ETheOneUIOverlayType::Main, MainWindow, HAlign_Fill, VAlign_Fill);
+				}
+				MainWindow->SetVisibility(ESlateVisibility::Visible);
+				ITheOneActivableWindowInterface::Execute_OnActive(MainWindow);
+			}
+			break;
+		case ETheOneImportantUI::BattleWindow:
+			{
+				if (BattleWindow == nullptr)
+				{
+					BattleWindow = CreateWidget<UTheOneBattleWindow>(this, BattleWindowClass);
+					PushUI(ETheOneUIOverlayType::Main, BattleWindow, HAlign_Fill, VAlign_Fill);
+				}
+				BattleWindow->SetVisibility(ESlateVisibility::Visible);
+				ITheOneActivableWindowInterface::Execute_OnActive(BattleWindow);
+			}
+			break;
+	}
+}
+
+void UTheOneUIRoot::CloseImportantUI(ETheOneImportantUI InUI)
+{
+	switch (InUI) {
+		case ETheOneImportantUI::MainWindow:
+			MainWindow->SetVisibility(ESlateVisibility::Hidden);
+			ITheOneActivableWindowInterface::Execute_OnDeActive(MainWindow);
+			break;
+		case ETheOneImportantUI::BattleWindow:
+			BattleWindow->SetVisibility(ESlateVisibility::Hidden);
+			ITheOneActivableWindowInterface::Execute_OnDeActive(BattleWindow);
+			break;
+	}
+}
+
 void UTheOneUIRoot::RegisterGridSlot(int ID, UTheOneGridSlot* InGridSlot)
 {
 	// Todo: 商店珍藏也需要注册不可见的Slot
@@ -49,7 +97,7 @@ void UTheOneUIRoot::RegisterGridSlot(int ID, UTheOneGridSlot* InGridSlot)
 		// 打印错误日志
 		auto Parent = InGridSlot->GetParent();
 		auto ParentName = Parent ? Parent->GetName() : TEXT("Unknown");
-		UE_LOG(LogTheOne, Error, TEXT("[%s].[%s], 注册ID%d失败"), *GetName(), *ParentName, ID);
+		UE_LOG(LogTheOne, Error, TEXT("[%s].[%s], 注册ID%d失败"), *ParentName, *InGridSlot->GetName(), ID);
 		return;
 	}
 	
@@ -60,12 +108,11 @@ void UTheOneUIRoot::RegisterGridSlot(int ID, UTheOneGridSlot* InGridSlot)
 			UE_LOG(LogTheOne, Error, TEXT("TheOneGridSlot[%s] OwnerType is None"), *InGridSlot->GetName());
 			break;
 		case ETheOneGridSlotType::CharacterBag:
-		case ETheOneGridSlotType::CharacterWeapon:
 		case ETheOneGridSlotType::ShopSell:
 			break;
 		case ETheOneGridSlotType::PlayerPropBag:
-		case ETheOneGridSlotType::PlayerWeaponBag:
 		case ETheOneGridSlotType::ShopTreasure:
+		case ETheOneGridSlotType::PlayerTeamBag:
 			{
 				auto LogicID= ItemSystem->RegisterOnePlayerSlot(InGridSlot->OwnerType);
 				UISlotToLogicSlotMap.Add(ID, LogicID);
@@ -117,22 +164,23 @@ void UTheOneUIRoot::DropItemOnGridSlot(int32 InUISlotID, ETheOneGridSlotType InU
 		case ETheOneGridSlotType::None:
 			break;
 		case ETheOneGridSlotType::PlayerPropBag:
-		case ETheOneGridSlotType::PlayerWeaponBag:
+		case ETheOneGridSlotType::PlayerTeamBag:
 			ToSlotID = UISlotToLogicSlotMap[InUISlotID];
 			break;
 		case ETheOneGridSlotType::CharacterBag:
 			{
-				auto SelectedCharacter = GetWorld()->GetSubsystem<UTheOneContextSystem>()->WeakSelectedCharacter;
-				check(SelectedCharacter.IsValid());
-				auto Index = InUISlotID % 6;
-				ToSlotID = ItemSystem->FindCharacterBagSlotID(SelectedCharacter->GetFlag(), Index);
-			}
-			break;
-		case ETheOneGridSlotType::CharacterWeapon:
-			{
-				auto SelectedCharacter = GetWorld()->GetSubsystem<UTheOneContextSystem>()->WeakSelectedCharacter;
-				check(SelectedCharacter.IsValid());
-				ToSlotID = ItemSystem->FindWeaponSlotID(SelectedCharacter->GetFlag());
+				auto SelectedCharacter = GetWorld()->GetSubsystem<UTheOneContextSystem>()->WeakBagSelectCharacter;
+				if (!SelectedCharacter.IsValid())
+                {
+                    UE_LOG(LogTheOne, Error, TEXT("DropItemOnGridSlot Failed, No Selected Bag Character"));
+                    return;
+                }
+				// 在UI上手动设置SlotID， 是从6W开始的， 0~5对应角色装备, 大于6时，是角色背包， 减去6为背包索引
+				ETheOneCharacterBagSlotType InType;
+				int InIndex;
+				UTheOneBlueprintFunctionLibrary::CharacterBagSlotIDToType(InUISlotID, InType, InIndex);
+				
+				ToSlotID = ItemSystem->FindCharacterItemSlotID(SelectedCharacter->GetFlag(), InType, InIndex);
 			}
 			break;
 		case ETheOneGridSlotType::ShopSell:
@@ -153,22 +201,30 @@ void UTheOneUIRoot::DropItemOnGridSlot(int32 InUISlotID, ETheOneGridSlotType InU
 	}
 }
 
+void UTheOneUIRoot::HideItemWidget(UTheOneItemUserWidget* InWidget) const
+{
+	InWidget->RemoveFromParent();
+	HiddenOverlay->AddChild(InWidget);
+}
+
 void UTheOneUIRoot::OnItemCreated(const FTheOneItemInstance& InItemInstance)
 {
 	auto ItemWidget = GetItemWidget();
-	if (InItemInstance.ItemType == ETheOneItemType::Weapon)
+	if (InItemInstance.ItemType == ETheOneItemType::Equipment)
 	{
-		auto DT = GetDefault<UTheOneDataTableSettings>()->WeaponTable.LoadSynchronous();
-		auto WeaponRow = DT->FindRow<FTheOneWeaponConfig>(InItemInstance.ItemRowName, "UTheOneUIRoot::OnItemCreated");
-		check(WeaponRow);
-		ItemWidget->SetupWeaponConfig(false, InItemInstance.ItemRowName, *WeaponRow, InItemInstance.ItemID);
+		auto DT = GetDefault<UTheOneDataTableSettings>()->EquipmentTable.LoadSynchronous();
+		auto EquipmentRow = DT->FindRow<FTheOneEquipmentConfig>(InItemInstance.ItemRowName, "UTheOneUIRoot::OnItemCreated");
+		check(EquipmentRow);
+		ItemWidget->SetupEquipmentConfig(false, InItemInstance.ItemRowName, *EquipmentRow, InItemInstance.ItemID);
 	}
-	else
+	else if (InItemInstance.ItemType == ETheOneItemType::Minion)
 	{
 		// Todo:
+		ItemWidget->SetupMinionConfig(false, InItemInstance.ItemRowName, InItemInstance.ItemID);
 	}
 	check(ItemWidgetMap.Contains(InItemInstance.ItemID) == false);
 	ItemWidgetMap.Add(InItemInstance.ItemID, ItemWidget);
+	HideItemWidget(ItemWidget);
 	OnItemUpdated(INDEX_NONE, InItemInstance);
 }
 
@@ -186,18 +242,13 @@ void UTheOneUIRoot::OnItemUpdated(int32 OldSlotID, const FTheOneItemInstance& In
 		case ETheOneGridSlotType::None:
 			break;
 		case ETheOneGridSlotType::ShopTreasure:
-		case ETheOneGridSlotType::PlayerWeaponBag:
 		case ETheOneGridSlotType::PlayerPropBag:
+		case ETheOneGridSlotType::PlayerTeamBag:
 			{
 				auto UISlotID = LogicSlotToUISlotMap[InItemInstance.LogicSlotID];
 				UE_LOG(LogTheOne, Log, TEXT("Item[%d] Update to UISlot[%d]"), InItemInstance.ItemID, UISlotID);
 				auto GridSlot = GridSlotMap[UISlotID];
 				GridSlot->SetContent(ItemWidget);
-			}
-			break;
-		case ETheOneGridSlotType::CharacterWeapon:
-			{
-				
 			}
 			break;
 		case ETheOneGridSlotType::CharacterBag:

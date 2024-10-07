@@ -12,8 +12,19 @@ UENUM(BlueprintType)
 enum class ETheOneItemType : uint8
 {
 	None,
+	Equipment,
+	Minion
+};
+
+UENUM(BlueprintType)
+enum class ETheOnePropType : uint8
+{
 	Weapon,
-	Prop,
+	Shield,
+	Cloth,
+	Head,
+	Jewelry,
+	Consumable,
 };
 
 USTRUCT(BlueprintType)
@@ -31,8 +42,9 @@ struct FTheOneAbilityRow
 };
 
 // 两种类型道具
-// 1、武器， 职业概念的包装， 提供白字属性（定义为基础属性）， 提供普攻和技能； 可进阶， 提供性能更好的普攻和技能
-// 2、物品， 提供角色属性（绿字属性，定义为附加属性）和机制，最多携带一个被动技能和一个主动技能；可合成
+// 1、装备， 功能通过配置实现， 目前包括：给与属性、给与技能等
+// 2、物品， 商品，材料，任务道具， Todo: 
+// 3、队伍成员
 
 USTRUCT(BlueprintType)
 struct FTheOneItemBase: public FTableRowBase
@@ -55,36 +67,50 @@ struct FTheOneItemBase: public FTableRowBase
 
 // Todo: 不同类型的生物配置不放入同一张表格， 一类生物应该有一组配置表：目前： CharacterConfig, CharacterAnimationConfig, CharacterWeaponConfig
 // Todo: 相同武器有不同强化方向，因此每把武器都是独立的实例
+
+// Todo: 部分属性使用KV赋予，如双手、单手； 主副手持握允许
 USTRUCT(BlueprintType)
-struct FTheOneWeaponConfig : public FTheOneItemBase
+struct FTheOneEquipmentConfig : public FTheOneItemBase
 {
 	GENERATED_BODY()
 
-	FTheOneWeaponConfig()
+	FTheOneEquipmentConfig(): PropType(), bTwoHanded(false)
 	{
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<FTheOneAdditionMesh> WeaponMesh;
+	ETheOnePropType PropType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bTwoHanded;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<FTheOneAttrModifier> AttrModifiers;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<FTheOneAdditionMesh> AdditionMeshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (RowType = "/Script/TheOne.TheOneCharacterAnimationConfig"))
 	FDataTableRowHandle AnimBPConfigRow;
-
-	UPROPERTY(EditAnywhere)
-	FTheOneAttackAbility AttackAbility;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FTheOneAbilityRow PassiveAbility;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FTheOneAbilityRow AbilityA;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FTheOneAbilityRow AbilityB;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FTheOneAbilityRow AbilityC;
+	TArray<FTheOneAbilityRow> Abilities;
 };
 
+USTRUCT(BlueprintType)
+struct FTheOneMinionData
+{
+	GENERATED_BODY()
 
+	FTheOneMinionData()
+	{
+	}
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName CharacterConfigRowName;
+};
+
+// Todo: 改成KV的形式吗？
 USTRUCT(BlueprintType)
 struct FTheOnePropConfig : public FTheOneItemBase
 {

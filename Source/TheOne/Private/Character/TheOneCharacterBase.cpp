@@ -55,18 +55,18 @@ const FTheOneCharacterConfig& ATheOneCharacterBase::GetConfig() const
 
 UTheOneAttackGA* ATheOneCharacterBase::DoAttack_Implementation(ETheOneTryActiveResult& Result)
 {
-	TheOneAbilitySystemComponent->TryTheOneActivateAbility(AttackAbilitySpecHandle, Result);
-	switch (Result) {
-		case ETheOneTryActiveResult::Succeed:
-			break;
-		case ETheOneTryActiveResult::SucceedNoInstanced:
-			break;
-		case ETheOneTryActiveResult::Failed:
-			UE_LOG(LogTheOne, Warning, TEXT("ATheOneCharacterBase::DoAttack_Implementation, Failed to activate ability"));
-		break;
-	}
+	// TheOneAbilitySystemComponent->TryTheOneActivateAbility(AttackAbilitySpecHandle, Result);
+	// switch (Result) {
+	// 	case ETheOneTryActiveResult::Succeed:
+	// 		break;
+	// 	case ETheOneTryActiveResult::SucceedNoInstanced:
+	// 		break;
+	// 	case ETheOneTryActiveResult::Failed:
+	// 		UE_LOG(LogTheOne, Warning, TEXT("ATheOneCharacterBase::DoAttack_Implementation, Failed to activate ability"));
+	// 	break;
+	// }
 
-	return AttackGA.Get();
+	return nullptr;
 }
 
 UTheOneGeneralGA* ATheOneCharacterBase::DoAbility_Implementation(ETheOneUseAbilityCommandType InUseAbilityCommandType,
@@ -82,21 +82,22 @@ UTheOneGeneralGA* ATheOneCharacterBase::DoAbility_Implementation(ETheOneUseAbili
 			// Todo:
 			break;
 		case ETheOneUseAbilityCommandType::UseWeaponAbility:
-			if (InIntPayload == 1)
-			{
-				ToReleaseAbilitySpecHandle = WeaponAbilityASpecHandle;
-				RetGA = WeakWeaponAbilityA.Get();
-			}
-			else if (InIntPayload == 2)
-			{
-				ToReleaseAbilitySpecHandle = WeaponAbilityBSpecHandle;
-				RetGA = WeakWeaponAbilityB.Get();
-			}
-			else if (InIntPayload == 3)
-			{
-				ToReleaseAbilitySpecHandle = WeaponAbilityCSpecHandle;
-				RetGA = WeakWeaponAbilityC.Get();
-			}
+			// Todo: 根据Index执行技能
+			// if (InIntPayload == 1)
+			// {
+			// 	ToReleaseAbilitySpecHandle = WeaponAbilityASpecHandle;
+			// 	RetGA = WeakWeaponAbilityA.Get();
+			// }
+			// else if (InIntPayload == 2)
+			// {
+			// 	ToReleaseAbilitySpecHandle = WeaponAbilityBSpecHandle;
+			// 	RetGA = WeakWeaponAbilityB.Get();
+			// }
+			// else if (InIntPayload == 3)
+			// {
+			// 	ToReleaseAbilitySpecHandle = WeaponAbilityCSpecHandle;
+			// 	RetGA = WeakWeaponAbilityC.Get();
+			// }
 			break;
 	}
 	

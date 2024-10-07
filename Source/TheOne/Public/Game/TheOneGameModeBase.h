@@ -94,7 +94,7 @@ public:
 	FString CreateAIName(int32 AIIndex);
 
 protected:
-	ATheOneAIController* SpawnOneAIInternal(const TSubclassOf<ATheOneAIController> AIControllerClass, const FTransform& SpawnTransform, const FTheOneAIPawnSpawnInfo& PawnSpawnInfo, bool UseTransform);
+	ATheOneAIController* SpawnOneAIInternal(TSubclassOf<ATheOneAIController> AIControllerClass, const FTransform& SpawnTransform, const FTheOneAIPawnSpawnInfo& PawnSpawnInfo, bool UseTransform);
 	
 	void RemoveOneAI(uint32 AIUniqueID);
 	
@@ -104,7 +104,10 @@ protected:
 	////// 关卡配置字段 ///////
 public:
 	UPROPERTY(EditAnywhere)
-	bool EnablePlayerControl = true;
+	bool OverrideAICtrl = false;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AAIController> OverrideAIControllerClass;
 };
 
 
