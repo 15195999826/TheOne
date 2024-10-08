@@ -8,7 +8,7 @@ enum class ETheOneUseAbilityCommandType : uint8
 {
 	Invalid,
 	UseItem,
-	UseWeaponAbility,
+	UseAbility,
 	Move,
 };
 
@@ -19,13 +19,13 @@ struct FTheOneUseAbilityCommandPayload
 
 	FTheOneUseAbilityCommandPayload()
 		: CommandType(), IntPayload(0)
-		  , VectorPayload(FVector::ZeroVector)
+		  , VectorPayload(FVector::ZeroVector), FloatPayload(0)
 	{
 	}
 
-	FTheOneUseAbilityCommandPayload(ETheOneUseAbilityCommandType InCommandType, int32 InIntPayload, const FVector& InVectorPayload)
+	FTheOneUseAbilityCommandPayload(ETheOneUseAbilityCommandType InCommandType, int32 InIntPayload, const FVector& InVectorPayload, float InFloatPayload)
 		: CommandType(InCommandType), IntPayload(InIntPayload)
-		  , VectorPayload(InVectorPayload)
+		  , VectorPayload(InVectorPayload), FloatPayload(InFloatPayload)
 	{
 	}
 
@@ -37,4 +37,7 @@ struct FTheOneUseAbilityCommandPayload
 
 	UPROPERTY(BlueprintReadWrite)
 	FVector VectorPayload;
+
+	UPROPERTY(BlueprintReadWrite)
+	float FloatPayload;
 };

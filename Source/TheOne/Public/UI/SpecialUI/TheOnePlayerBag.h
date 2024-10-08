@@ -52,6 +52,8 @@ public:
 	// Todo: 需要展示的属性的Line的绑定
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTheOneAttributeLine> HPAttributeLine;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTheOneAttributeLine> SpeedLine;
 
 	UPROPERTY()
 	TWeakObjectPtr<ACaptureActor> CaptureActor;

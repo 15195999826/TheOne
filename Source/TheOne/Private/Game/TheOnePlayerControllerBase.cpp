@@ -27,8 +27,8 @@ void ATheOnePlayerControllerBase::BeginPlay()
 
 	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 	EventSystem->UseAbilityCommand.AddDynamic(this, &ATheOnePlayerControllerBase::ReceiveUseAbilityCommand);
-	EventSystem->OnAbilityCommandCanceled.AddDynamic(this, &ATheOnePlayerControllerBase::HideReleaseDistanceTips);
-	EventSystem->OnAbilityCommandFinished.AddDynamic(this, &ATheOnePlayerControllerBase::HideReleaseDistanceTips);
+	EventSystem->OnAbilityCommandCanceled.AddDynamic(this, &ATheOnePlayerControllerBase::OnAbilityCommandCanceled);
+	EventSystem->OnAbilityCommandFinished.AddDynamic(this, &ATheOnePlayerControllerBase::OnAbilityCommandFinished);
 }
 
 void ATheOnePlayerControllerBase::DeselectCharacter()
@@ -99,6 +99,7 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 		FWidgetPath WidgetUnderMouse = FSlateApplication::Get().LocateWindowUnderMouse(FSlateApplication::Get().GetCursorPos() , FSlateApplication::Get().GetInteractiveTopLevelWindows(), true);
 		
 		OverWidget = !(WidgetUnderMouse.IsValid() &&  WidgetUnderMouse.GetLastWidget() == ViewPort.ToSharedRef());
+		// UE_LOG(LogTheOne, Log, TEXT("OverWidget: %d, %s"), OverWidget, *WidgetUnderMouse.GetLastWidget()->GetWidgetClass().GetWidgetType().ToString());
 	}
 	
 	
@@ -136,7 +137,7 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 	{
 		GeneralOnHitNone();
 	}
-
+	
 	switch (CursorState) {
 		case ETheOneCursorState::Normal:
 			{
@@ -183,35 +184,46 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 				else if (WasInputKeyJustPressed(EKeys::LeftMouseButton))
 				{
 					auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+					// Todo: 如果点击了地面，检查该位置是否存在Actor
+				
 					if (HitCharacter && HasUseAbilityCommandCache)
 					{
+						auto ExecuteCharacter = GetExecCharacter();
 						bool SuccessSelect = false;
-						switch (SelectActorType) {
-							case ETheOneSelectActorType::Any:
-								SuccessSelect = true;
-							break;
-							case ETheOneSelectActorType::Ally:
-								if (IInHexActorInterface::Execute_GetCamp(SelectedCharacter) == IInHexActorInterface::Execute_GetCamp(HitCharacter))
-								{
-									SuccessSelect = true;
-								}
-								break;
-							case ETheOneSelectActorType::Enemy:
-								if (IInHexActorInterface::Execute_GetCamp(SelectedCharacter) != IInHexActorInterface::Execute_GetCamp(HitCharacter))
-								{
-									SuccessSelect = true;
-								}
-								break;
-							case ETheOneSelectActorType::Special:
-								break;
-						}
+						bool InDistance = InReleaseDistance(ExecuteCharacter->GetActorLocation(), HitCharacter->GetActorLocation(), ReleaseDistanceCache);
 
+						if (InDistance)
+						{
+							switch (SelectActorType)
+							{
+								case ETheOneSelectActorType::Any:
+									SuccessSelect = true;
+									break;
+								case ETheOneSelectActorType::Ally:
+									if (IInHexActorInterface::Execute_GetCamp(ExecuteCharacter) ==
+										IInHexActorInterface::Execute_GetCamp(HitCharacter))
+									{
+										SuccessSelect = true;
+									}
+									break;
+								case ETheOneSelectActorType::Enemy:
+									if (IInHexActorInterface::Execute_GetCamp(ExecuteCharacter) !=
+										IInHexActorInterface::Execute_GetCamp(HitCharacter))
+									{
+										SuccessSelect = true;
+									}
+									break;
+								case ETheOneSelectActorType::Special:
+									break;
+							}
+						}
 						
 						if (SuccessSelect)
 						{
-							check(SelectedCharacter);
+							check(ExecuteCharacter);
+							ConsumeActionPoint(ExecuteCharacter, CostCache);
 							ITheOneAICommandInterface::Execute_CommitAbility(
-								SelectedCharacter->GetController(), PayloadCache, HitCharacter,
+								ExecuteCharacter->GetController(), PayloadCache, HitCharacter,
 								HitCharacter->GetActorLocation(), ReleaseDistanceCache);
 							
 							EventSystem->OnAbilityCommandFinished.Broadcast();  
@@ -232,30 +244,36 @@ void ATheOnePlayerControllerBase::Tick(float DeltaSeconds)
 			}
 			break;
 		case ETheOneCursorState::SelectGround:
-			if (bIsRightClick)
 			{
-				auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-				EventSystem->OnAbilityCommandCanceled.Broadcast();
-				ChangeCursorState(ETheOneCursorState::Normal);
-			}
-			else if (WasInputKeyJustPressed(EKeys::LeftMouseButton))
-			{
-				auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-				// Todo: 如果点击到的Actor， 那么可以将位置设置为Actor位置？ Or 这次点击在做涉嫌检测时忽略Actor?
-				if (HitGround)
+				if (bIsRightClick)
 				{
-					if (HasUseAbilityCommandCache)
+					auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+					EventSystem->OnAbilityCommandCanceled.Broadcast();
+					ChangeCursorState(ETheOneCursorState::Normal);
+				}
+				else if (WasInputKeyJustPressed(EKeys::LeftMouseButton))
+				{
+					auto ExecuteCharacter = GetExecCharacter();
+					auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+					// Todo: 如果点击到的Actor， 那么可以将位置设置为Actor位置？ Or 这次点击在做涉嫌检测时忽略Actor?
+					if (HitGround)
 					{
-						check(SelectedCharacter);
-						ITheOneAICommandInterface::Execute_CommitAbility(
-							SelectedCharacter->GetController(), PayloadCache, nullptr, HitGroundLocation, ReleaseDistanceCache);
-						EventSystem->OnAbilityCommandFinished.Broadcast();
-							
-						HasUseAbilityCommandCache = false;
-						ChangeCursorState(ETheOneCursorState::Normal);
+						if (HasUseAbilityCommandCache)
+						{
+							check(ExecuteCharacter);
+							ConsumeActionPoint(ExecuteCharacter, CostCache);
+							ITheOneAICommandInterface::Execute_CommitAbility(
+								ExecuteCharacter->GetController(), PayloadCache, nullptr, HitGroundLocation,
+								ReleaseDistanceCache);
+							EventSystem->OnAbilityCommandFinished.Broadcast();
+
+							HasUseAbilityCommandCache = false;
+							ChangeCursorState(ETheOneCursorState::Normal);
+						}
 					}
 				}
 			}
+			
 			break;
 	}
 }
@@ -377,7 +395,7 @@ void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(const FTheOneUseAbili
 	switch (InUseAbilityCommandType) {
 		case ETheOneUseAbilityCommandType::UseItem:
 			break;
-		case ETheOneUseAbilityCommandType::UseWeaponAbility:
+		case ETheOneUseAbilityCommandType::UseAbility:
 			{
 				UTheOneGeneralGA* Ability = nullptr;
 
@@ -443,12 +461,34 @@ void ATheOnePlayerControllerBase::ReceiveUseAbilityCommand(const FTheOneUseAbili
 	}
 }
 
+void ATheOnePlayerControllerBase::OnAbilityCommandCanceled()
+{
+	HideReleaseDistanceTips();
+}
+
+void ATheOnePlayerControllerBase::OnAbilityCommandFinished()
+{
+	HideReleaseDistanceTips();
+}
+
+bool ATheOnePlayerControllerBase::InReleaseDistance(const FVector& SourceLocation, const FVector& TargetLocation,
+                                                    int InReleaseDistance)
+{
+	return FVector::Dist(SourceLocation, TargetLocation) <= InReleaseDistance;
+}
+
+
 void ATheOnePlayerControllerBase::ShowReleaseDistanceTips()
 {
 }
 
 void ATheOnePlayerControllerBase::HideReleaseDistanceTips()
 {
+}
+
+ATheOneCharacterBase* ATheOnePlayerControllerBase::GetExecCharacter()
+{
+	return SelectedCharacter;
 }
 
 void ATheOnePlayerControllerBase::ChangeCursorState(ETheOneCursorState InState, ETheOneSelectActorType InSelectActorType, int InReleaseDistance)
@@ -458,3 +498,6 @@ void ATheOnePlayerControllerBase::ChangeCursorState(ETheOneCursorState InState, 
 	OnCursorStateChange(InState, InSelectActorType, InReleaseDistance);
 }
 
+void ATheOnePlayerControllerBase::ConsumeActionPoint(ATheOneCharacterBase* InCharacter, float InCost)
+{
+}

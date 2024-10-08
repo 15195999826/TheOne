@@ -31,9 +31,8 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<ATheOneBattle> BattleLogicClass;
-
-	// Todo: 临时允许蓝图获取
-	UPROPERTY(BlueprintReadOnly)
+	
+	UPROPERTY()
 	TObjectPtr<ATheOneBattle> Battle;
 	
 	// Called when the game starts

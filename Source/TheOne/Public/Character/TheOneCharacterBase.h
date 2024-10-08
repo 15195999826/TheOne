@@ -120,6 +120,9 @@ public:
 		return TheOneAbilitySystemComponent.Get();
 	}
 
+	
+	virtual void BeforeEnterBattle() override;
+	virtual void AfterEndBattle() override;
 	virtual UTheOneAttackGA* DoAttack_Implementation(ETheOneTryActiveResult& Result) override;
 	/**
 	 * InUseAbilityCommandType == ETheOneUseAbilityCommandType::UseWeaponAbility, InIntPayload == 1, 2, 3
@@ -205,7 +208,7 @@ public:
 		SkillState = InSkillState;
 	}
 
-	
+	const FTheOneAbilityCache* GetAbilityCacheByIntPayload(int32 InIntPayload);
 	
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="Die"))
 	void BP_Die();
@@ -222,4 +225,16 @@ public:
 private:
 	void OnMoveSpeedChanged(const FOnAttributeChangeData& OnAttributeChangeData) const;
 	void OnRotationRateChanged(const FOnAttributeChangeData& OnAttributeChangeData) const;
+
+	// For Turn Based Battle
+protected:
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_OnGetTurn();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_OnEndTurn();
+	
+private:
+	void OnGetTurn(ATheOneCharacterBase* InCharacter);
+	void OnEndTurn(ATheOneCharacterBase* InCharacter);
 };

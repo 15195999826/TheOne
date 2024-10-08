@@ -58,8 +58,11 @@ protected:
 	TScriptInterface<IInHexActorInterface> InHexActorInterface;
 
 public:
-	void SetCoord(const FHCubeCoord& Coord);
+	// 战棋移动使用
+	UFUNCTION(BlueprintCallable)
+	void UpdateToCurrentLocation();
 	
+	void SetCoord(const FHCubeCoord& Coord);
 	void OnAIDead();
 
 protected:

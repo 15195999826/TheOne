@@ -24,6 +24,7 @@ public:
 	TObjectPtr<UHorizontalBox> AbilityWidgetContainer;
 
 	void UnBind();
+	
 	void Bind(ATheOneCharacterBase* InCharacter);
 
 protected:
@@ -32,4 +33,7 @@ protected:
 
 	UTheOneAbilityWidget* GetAbilityWidget();
 	void ReleaseAbilityWidget(UTheOneAbilityWidget* InWidget);
+
+	UFUNCTION()
+	void OnExecuteAbility(int InIntPayLoad);
 };

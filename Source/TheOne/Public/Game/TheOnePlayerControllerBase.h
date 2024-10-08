@@ -86,11 +86,22 @@ protected:
 	bool HasUseAbilityCommandCache = false;
 	FTheOneUseAbilityCommandPayload PayloadCache;
 	int ReleaseDistanceCache;
+	float CostCache;
 	
 	UFUNCTION()
 	virtual void ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload);
+	UFUNCTION()
+	virtual void OnAbilityCommandCanceled();
+	UFUNCTION()
+	virtual void OnAbilityCommandFinished();
+
+	virtual void ConsumeActionPoint(ATheOneCharacterBase* InCharacter, float InCost);
+
+	virtual bool InReleaseDistance(const FVector& SourceLocation, const FVector& TargetLocation, int InReleaseDistance);
 
 	virtual void ShowReleaseDistanceTips();
 	UFUNCTION()
 	virtual void HideReleaseDistanceTips();
+
+	virtual ATheOneCharacterBase* GetExecCharacter();
 };

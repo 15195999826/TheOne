@@ -3,7 +3,10 @@
 
 #include "Subsystems/TheOneTeamSystem.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "TheOneLogChannels.h"
+#include "AbilitySystem/TheOneAttributeSet.h"
 #include "AI/TheOneAIController.h"
 #include "Game/TheOneGameModeBase.h"
 #include "Item/TheOneItemSystem.h"
@@ -58,8 +61,19 @@ uint32 UTheOneTeamSystem::AddCharacterToTeam(int32 InTeamID, const FName& InChar
 	return  AddCharacterToTeam(InTeamID, InCharacterRowName, FirstEmptyPosition, bCreateItemHook);
 }
 
+void UTheOneTeamSystem::GiveCharacterAttribute(ATheOneAIController* const& Ctrl)
+{
+	// 随机速度
+	auto Speed = FMath::RandRange(1, 100);
+	auto CharacterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Ctrl->GetPawn());
+	CharacterASC->SetNumericAttributeBase(UTheOneAttributeSet::GetSpeedAttribute(), Speed);
+
+	// 设置最大行动点数
+	CharacterASC->SetNumericAttributeBase(UTheOneAttributeSet::GetMaxActionPointAttribute(), 9);
+}
+
 uint32 UTheOneTeamSystem::AddCharacterToTeam(int32 InTeamID, const FName& InCharacterRowName, int InTeamPosition,
-	bool bCreateItemHook)
+                                             bool bCreateItemHook)
 {
 	check(InTeamPosition > -1 && InTeamPosition < 24);
 	if (Teams.Contains(InTeamID) == false)
@@ -86,6 +100,10 @@ uint32 UTheOneTeamSystem::AddCharacterToTeam(int32 InTeamID, const FName& InChar
 	CharacterUnique.Flag = Flag;
 	CharacterUnique.TeamPosition = InTeamPosition;
 	Team.Add(CharacterUnique.Flag);
+
+	// 角色的速度属性进行一个随机
+	GiveCharacterAttribute(Ctrl);
+	
 	CharacterUniques.Add(CharacterUnique.Flag, CharacterUnique);
 	// 创建一个衔接的道具实例
 	if (bCreateItemHook)

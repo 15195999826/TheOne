@@ -3,6 +3,7 @@
 
 #include "Game/TheOneBattle.h"
 
+#include "AbilitySystem/TheOneAttributeSet.h"
 #include "AI/TheOneAIController.h"
 #include "Game/TheOneEventSystem.h"
 #include "Game/TheOneGameInstance.h"
@@ -17,6 +18,9 @@
 
 void ATheOneBattle::OnEnterBattle()
 {
+	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+	EventSystem->OnCharacterEndTurn.AddUObject(this, &ATheOneBattle::OnCharacterEndTurn);
+	
 	// 拿到玩家队伍的全部成员
 	auto GameMode = Cast<ATheOneGameModeBase>(UGameplayStatics::GetGameMode(this));
 	
@@ -109,9 +113,9 @@ void ATheOneBattle::OnBattleStageChanged_Implementation()
 			break;
 		case ETheOneBattleStage::CharacterTurn:
 			{
-				auto PC = Cast<ATheOneHexMapPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
-				PC->ChangeActiveCharacter(BattleContext.ActionQueue[BattleContext.CurrentTurn]);
-
+				auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+				auto CurrentCharacter = BattleContext.ActionQueue[BattleContext.CurrentTurn];
+				EventSystem->OnCharacterGetTurn.Broadcast(CurrentCharacter);
 				// 等待玩家操作结束回合
 			}
 			break;
@@ -142,6 +146,11 @@ void ATheOneBattle::TeamMoveToBattleArea(const TArray<uint32>& Team, FRotator In
 		{
 			HexPathFollow->SetCoord(Coord);
 		}
+
+		// Cast To ITheOneBattleInterface
+		auto BattleInterface = Cast<ITheOneBattleInterface>(Character);
+		check(BattleInterface)
+		BattleInterface->BeforeEnterBattle();
 	}
 }
 
@@ -159,10 +168,12 @@ void ATheOneBattle::WaitSignalChangeTo(ETheOneBattleStage NewStage)
 void ATheOneBattle::NextRound()
 {
 	BattleContext.Round++;
+	BattleContext.CurrentTurn = -1;
 	// 回合阶段: 1. 回合开始 2.确定行动数据 3.每个角色进行行动 4.回合结束
 	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 	EventSystem->OnRoundBegin.Broadcast(BattleContext.Round);
 	// 计算行动顺序
+	BattleContext.ActionQueue.Empty();
 	// Todo: 根据速度计算， 目前直接先我方后敌方
 	auto TeamSystem = GetWorld()->GetSubsystem<UTheOneTeamSystem>();
 	const auto& PlayerTeam = TeamSystem->GetTeam(TeamSystem->GetPlayerTeamID());
@@ -179,6 +190,30 @@ void ATheOneBattle::NextRound()
 		auto Character = Cast<ATheOneCharacterBase>(GameMode->SpawnedAIMap[Flag]->GetPawn());
 		BattleContext.ActionQueue.Add(Character);
 	}
+
+	// 根据速度Sort
+	BattleContext.ActionQueue.Sort([](const ATheOneCharacterBase& A, const ATheOneCharacterBase& B)
+	{
+		float SpeedA = A.GetAttributeSet()->GetSpeed();
+		float SpeedB = B.GetAttributeSet()->GetSpeed();
+		return SpeedA > SpeedB;
+	});
+
+	// 打印行动顺序
+	for (int i = 0; i < BattleContext.ActionQueue.Num(); i++)
+	{
+		auto Character = BattleContext.ActionQueue[i];
+		UE_LOG(LogTheOne, Log, TEXT("Round: %d, Character: %s, Speed: %f, Index: %d"), BattleContext.Round,
+		       *Character->GetName(), Character->GetAttributeSet()->GetSpeed(), i);
+	}
+	
+	// 所有角色行动点数恢复到最大值
+	for (auto const& Character : BattleContext.ActionQueue)
+	{
+		auto Attr = Character->GetAttributeSet();
+		auto MaxActionPoint = Attr->GetMaxActionPoint();
+		Attr->SetActionPoint(MaxActionPoint);
+	}
 	
 	BattleContext.SetStage(ETheOneBattleStage::NewRoundPending);
 }
@@ -191,14 +226,14 @@ void ATheOneBattle::NextCharacterTurn()
 		BattleContext.SetStage(ETheOneBattleStage::EnterNewRound);
 		return;
 	}
-	
-	// 开始第一个角色的行动
-
-	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-	auto CurrentCharacter = BattleContext.ActionQueue[BattleContext.CurrentTurn];
-	EventSystem->OnCharacterGetTurn.Broadcast(CurrentCharacter);
-
 	BattleContext.SetStage(ETheOneBattleStage::CharacterTurn);
 	// 1. 行动角色， 现实一个箭头UI
 	// 2. 左键点击一下地面，显示移动路径， 再次点击该位置，进行移动
+}
+
+void ATheOneBattle::OnCharacterEndTurn(ATheOneCharacterBase* InCharacter)
+{
+	auto CurrentCharacter = BattleContext.ActionQueue[BattleContext.CurrentTurn];
+	check(CurrentCharacter == InCharacter)
+	CompleteWaitSignal();
 }

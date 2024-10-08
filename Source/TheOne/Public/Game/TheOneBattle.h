@@ -33,7 +33,6 @@ protected:
 	UFUNCTION(BlueprintNativeEvent)
 	void OnBattleStageChanged();
 
-
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UTheOneBattleWindow* GetBattleWindow() const;
 	
@@ -49,4 +48,7 @@ private:
 	
 	void NextRound();
 	void NextCharacterTurn();
+
+
+	void OnCharacterEndTurn(ATheOneCharacterBase* InCharacter);
 };

@@ -57,7 +57,7 @@ void UTheOneUIRoot::ShowImportantUI(ETheOneImportantUI InUI)
 					MainWindow = CreateWidget<UTheOneMainWindow>(this, MainWindowClass);
 					PushUI(ETheOneUIOverlayType::Main, MainWindow, HAlign_Fill, VAlign_Fill);
 				}
-				MainWindow->SetVisibility(ESlateVisibility::Visible);
+				MainWindow->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 				ITheOneActivableWindowInterface::Execute_OnActive(MainWindow);
 			}
 			break;
@@ -68,7 +68,7 @@ void UTheOneUIRoot::ShowImportantUI(ETheOneImportantUI InUI)
 					BattleWindow = CreateWidget<UTheOneBattleWindow>(this, BattleWindowClass);
 					PushUI(ETheOneUIOverlayType::Main, BattleWindow, HAlign_Fill, VAlign_Fill);
 				}
-				BattleWindow->SetVisibility(ESlateVisibility::Visible);
+				BattleWindow->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 				ITheOneActivableWindowInterface::Execute_OnActive(BattleWindow);
 			}
 			break;

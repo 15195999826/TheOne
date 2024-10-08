@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/TheOneAIController.h"
 #include "Item/TheOneItemSystem.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Types/TheOneCharacterUnique.h"
@@ -52,6 +53,7 @@ public:
 	int32 CreateTeam();
 
 	uint32 AddCharacterToTeam(int32 InTeamID, const FName& InCharacterRowName, bool bCreateItemHook = false);
+	void GiveCharacterAttribute(ATheOneAIController* const& Ctrl);
 	uint32 AddCharacterToTeam(int32 InTeamID, const FName& InCharacterRowName, int InTeamPosition, bool bCreateItemHook = false);
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)

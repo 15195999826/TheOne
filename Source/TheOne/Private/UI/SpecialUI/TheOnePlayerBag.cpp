@@ -13,6 +13,7 @@
 #include "Subsystems/TheOneContextSystem.h"
 #include "Subsystems/TheOneTeamSystem.h"
 #include "UI/TheOneUIRoot.h"
+#include "UI/SpecialUI/TheOneAttributeLine.h"
 #include "UI/SpecialUI/TheOneGridSlot.h"
 
 void UTheOnePlayerBag::NativeConstruct()
@@ -89,16 +90,17 @@ void UTheOnePlayerBag::OnSelectInBagCharacter(int32 InCharacterItemID)
 	const auto& CharacterUnique = TeamSystem->GetCharacterUniqueByHookedItemID(InCharacterItemID);
 	auto GameMode = GetWorld()->GetAuthGameMode<ATheOneGameModeBase>();
 	check(GameMode->SpawnedAIMap.Contains(CharacterUnique.Flag))
-	auto Character = GameMode->SpawnedAIMap[CharacterUnique.Flag]->GetPawn();
-	WeakCurrentSelectCharacter = GetWorld()->GetSubsystem<UTheOneContextSystem>()->WeakBagSelectCharacter = Cast<ATheOneCharacterBase>(Character);
+	auto Pawn = GameMode->SpawnedAIMap[CharacterUnique.Flag]->GetPawn();
+	WeakCurrentSelectCharacter = GetWorld()->GetSubsystem<UTheOneContextSystem>()->WeakBagSelectCharacter = Cast<ATheOneCharacterBase>(Pawn);
 	// 角色对应的Panel的更新
 	if (CaptureActor.IsValid())
 	{
-		CaptureActor->CaptureActorOnly(Character, DefaultCaptureTransform);
+		CaptureActor->CaptureActorOnly(Pawn, DefaultCaptureTransform);
 	}
 
 	// Todo: 清除旧的属性监听， 并绑定到新角色
-
+	SpeedLine->Bind(WeakCurrentSelectCharacter->GetAbilitySystemComponent());
+	
 	// 显示当前装备
 	UpdateEquipment(WeakCurrentSelectCharacter->MainHandItemID, MainHandSlot);
 	UpdateEquipment(WeakCurrentSelectCharacter->OffHandItemID, OffHandSlot);

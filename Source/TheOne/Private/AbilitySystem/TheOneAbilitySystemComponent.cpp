@@ -31,6 +31,7 @@ UTheOneGameplayAbility* UTheOneAbilitySystemComponent::TryTheOneActivateAbility(
 	if (!AbilitySpec)
 	{
 		Success = ETheOneTryActiveResult::Failed;
+		UE_LOG(LogTheOne, Error, TEXT("TryTheOneActivateAbility, AbilitySpec is nullptr"));
 		return nullptr;
 	}
 
@@ -39,6 +40,7 @@ UTheOneGameplayAbility* UTheOneAbilitySystemComponent::TryTheOneActivateAbility(
 	if (TheOneAbility == nullptr)
 	{
 		Success = ETheOneTryActiveResult::Failed;
+		UE_LOG(LogTheOne, Error, TEXT("TryTheOneActivateAbility, Instance is nullptr"));
 		return nullptr;
 	}
 

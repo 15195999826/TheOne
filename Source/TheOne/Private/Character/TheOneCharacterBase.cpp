@@ -12,6 +12,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/TheOneCharacterMovementComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Game/TheOneEventSystem.h"
 #include "HexGrid/HexPathFollowingComponent.h"
 
 // 使用TheOneCharacterMovementComponent
@@ -53,6 +54,38 @@ const FTheOneCharacterConfig& ATheOneCharacterBase::GetConfig() const
 	return EmptyConfig;
 }
 
+const FTheOneAbilityCache* ATheOneCharacterBase::GetAbilityCacheByIntPayload(int32 InIntPayload)
+{
+	int Count = 0;
+	for (const auto& Ability : AbilityCaches)
+	{
+		for (const auto& AbilityData : Ability.Value)
+		{
+			if (Count == InIntPayload)
+			{
+				return &AbilityData;
+			}
+			Count++;
+		}
+	}
+	
+	return nullptr;
+}
+
+void ATheOneCharacterBase::BeforeEnterBattle()
+{
+	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+	EventSystem->OnCharacterGetTurn.AddUObject(this, &ATheOneCharacterBase::OnGetTurn);
+	EventSystem->OnCharacterEndTurn.AddUObject(this, &ATheOneCharacterBase::OnEndTurn);
+}
+
+void ATheOneCharacterBase::AfterEndBattle()
+{
+	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+	EventSystem->OnCharacterGetTurn.RemoveAll(this);
+	EventSystem->OnCharacterEndTurn.RemoveAll(this);
+}
+
 UTheOneAttackGA* ATheOneCharacterBase::DoAttack_Implementation(ETheOneTryActiveResult& Result)
 {
 	// TheOneAbilitySystemComponent->TryTheOneActivateAbility(AttackAbilitySpecHandle, Result);
@@ -81,8 +114,14 @@ UTheOneGeneralGA* ATheOneCharacterBase::DoAbility_Implementation(ETheOneUseAbili
 		case ETheOneUseAbilityCommandType::UseItem:
 			// Todo:
 			break;
-		case ETheOneUseAbilityCommandType::UseWeaponAbility:
+		case ETheOneUseAbilityCommandType::UseAbility:
 			// Todo: 根据Index执行技能
+			{
+				const auto AbilityCache = GetAbilityCacheByIntPayload(InIntPayload);
+				check(AbilityCache)
+				ToReleaseAbilitySpecHandle = AbilityCache->AbilitySpecHandle;
+				RetGA = AbilityCache->AbilityGA.Get();
+			}
 			// if (InIntPayload == 1)
 			// {
 			// 	ToReleaseAbilitySpecHandle = WeaponAbilityASpecHandle;
@@ -215,4 +254,20 @@ void ATheOneCharacterBase::OnMoveSpeedChanged(const FOnAttributeChangeData& OnAt
 void ATheOneCharacterBase::OnRotationRateChanged(const FOnAttributeChangeData& OnAttributeChangeData) const
 {
 	GetCharacterMovement()->RotationRate = FRotator(0.f, OnAttributeChangeData.NewValue, 0.f);
+}
+
+void ATheOneCharacterBase::OnGetTurn(ATheOneCharacterBase* InCharacter)
+{
+	if (InCharacter == this)
+	{
+		BP_OnGetTurn();
+	}
+}
+
+void ATheOneCharacterBase::OnEndTurn(ATheOneCharacterBase* InCharacter)
+{
+	if (InCharacter == this)
+	{
+		BP_OnEndTurn();
+	}
 }

@@ -99,6 +99,9 @@ struct FTheOneAbilityConfig: public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	ETheOneAbilityReleaseTarget TargetType;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "行动点消耗"))
+	int Cost = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "施法范围"))
 	int ReleaseDistance = 0;

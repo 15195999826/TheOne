@@ -22,6 +22,7 @@ TMap<FGameplayTag, TFunction<FGameplayAttribute()>> UTheOneAttributeLine::Tag2At
 	{TheOneGameplayTags::SetByCaller_Attribute_Runtime_ActionPoint, [](){return UTheOneAttributeSet::GetActionPointAttribute();}},
 	{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxEnergy, [](){return UTheOneAttributeSet::GetMaxEnergyAttribute();}},
 	{TheOneGameplayTags::SetByCaller_Attribute_Runtime_Energy, [](){return UTheOneAttributeSet::GetEnergyAttribute();}},
+	{TheOneGameplayTags::SetByCaller_Attribute_Vital_Speed, [](){return UTheOneAttributeSet::GetSpeedAttribute();}},
 };
 
 
@@ -36,7 +37,7 @@ void UTheOneAttributeLine::NativePreConstruct()
 	{
 		AttributeName->SetText(FText::FromString(AttributeTag.ToString()));
 	}
-
+	
 	if (Tag2Attribute.Contains(MaxAttributeTag))
 	{
 		AttributeSpace->SetVisibility(ESlateVisibility::Visible);

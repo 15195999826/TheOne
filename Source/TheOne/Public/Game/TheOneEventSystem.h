@@ -19,6 +19,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectCharacterDelegate, ATheOneCharacter
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGetFocusDelegate, const FTheOneFocusData&);
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTheOneOneBoolSignature, bool, BoolPayload);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTheOneUseAbilityCommandSignature, const FTheOneUseAbilityCommandPayload&, Payload);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FTheOneSimpleSignature);
 /**
@@ -58,4 +59,8 @@ public:
 
 	// For Battle Start
 	FOnTheOneOneIntParamDelegate OnRoundBegin;
+
+	UPROPERTY(BlueprintCallable)
+	FTheOneOneBoolSignature OnCommandBehaviorEnd;
+	
 };

@@ -85,11 +85,24 @@ void UHexPathFollowingComponent::OnPathFinished(const FPathFollowingResult& Resu
 		if (CurrentCoord != BookedCoord)
 		{
 			ReleaseBookedCoord();
+			UpdateBookedCoord(CurrentCoord);
 		}
 		
 		UE_LOG(LogHexPathFollow, Verbose, TEXT("[Actor %s] OnPathFinished: %s"), *MovementComp->GetOwner()->GetName(), *Result.ToString());
 	}
 	Super::OnPathFinished(Result);
+}
+
+
+void UHexPathFollowingComponent::UpdateToCurrentLocation()
+{
+	// Leave Current
+	ReleaseBookedCoord();
+	LeaveHexCoord(CurrentCoord);
+	
+	auto MoveComPos = MovementComp->GetActorFeetLocation();
+	BookHexCoord(HexMesh->HexGrid->WorldToHex(MoveComPos));
+	EnterHexCoord(HexMesh->HexGrid->WorldToHex(MoveComPos));
 }
 
 void UHexPathFollowingComponent::SetCoord(const FHCubeCoord& Coord)
@@ -130,7 +143,6 @@ void UHexPathFollowingComponent::ReleaseBookedCoord()
 {
 	FHexTile& BookedTile = HexMesh->HexGrid->GetMutableHexTile(BookedCoord);
 	BookedTile.HasAIBooked = false;
-	UpdateBookedCoord(CurrentCoord);
 }
 
 void UHexPathFollowingComponent::UpdateCurrentCoord(const FHCubeCoord& InCoord)

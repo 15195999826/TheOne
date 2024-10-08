@@ -27,8 +27,6 @@ protected:
 	TWeakObjectPtr<AAIController> ActiveAI;
 
 public:
-	void ChangeActiveCharacter(ATheOneCharacterBase* InCharacter);
-	
 	const ATheOneCharacterBase* GetSelectedCharacter() const { return SelectedCharacter; }
 
 	void PlayInEditor() { bPlayInEditor = true; }
@@ -49,6 +47,7 @@ protected:
 	virtual void ShowReleaseDistanceTips() override;
 	
 	virtual void HideReleaseDistanceTips() override;
+	void HideAllPathTips();
 
 	virtual void BP_OnHitGround_Implementation(const FVector& HitLocation, bool bIsRightClick, bool bIsLeftClick, bool CanWalk) override;
 private:
@@ -73,7 +72,9 @@ private:
 	// For PathFinding
 protected:
 	bool IsCommanding = false;
-	FVector CurrentGoalLocation;
+	FVector DesiredGoalLocation;
+	FVector CanArriveGoalLocation;
+	float CurrentCost = 0;
 	FAIMoveRequest MoveRequest;
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> PathTipClass;
@@ -87,4 +88,19 @@ protected:
 	// For UseAbilityCommand
 protected:
 	virtual void ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload) override;
+	UFUNCTION()
+	void OnCommandBehaviorEnd(bool bSuccess);
+	virtual void OnAbilityCommandCanceled() override;
+	virtual void OnAbilityCommandFinished() override;
+	virtual bool InReleaseDistance(const FVector& SourceLocation, const FVector& TargetLocation, int InReleaseDistance) override;
+	virtual void ConsumeActionPoint(ATheOneCharacterBase* InCharacter, float InCost) override;
+	// For Turn
+protected:
+	virtual ATheOneCharacterBase* GetExecCharacter() override;
+	
+	void OnCharacterGetTurn(ATheOneCharacterBase* TheOneCharacterBase);
+	
+	UFUNCTION(BlueprintCallable)
+	void EndActiveCharacterTurn();
+	
 };

@@ -5,6 +5,7 @@
 #include "UI/SpecialUI/TheOneAbilityWidget.h"
 #include "AbilitySystemComponent.h"
 #include "Components/HorizontalBox.h"
+#include "Game/TheOneEventSystem.h"
 
 void UTheOneAbilityPanel::UnBind()
 {
@@ -20,6 +21,7 @@ void UTheOneAbilityPanel::UnBind()
 void UTheOneAbilityPanel::Bind(ATheOneCharacterBase* InCharacter)
 {
 	const auto& AbilityCaches = InCharacter->AbilityCaches;
+	int Count = 0;
 	for (const auto& AbilityCache : AbilityCaches)
 	{
 		for (const auto& Ability : AbilityCache.Value)
@@ -29,8 +31,12 @@ void UTheOneAbilityPanel::Bind(ATheOneCharacterBase* InCharacter)
 				continue;
 			}
 			auto AbilityWidget = GetAbilityWidget();
-			AbilityWidget->BindAbilityData(Ability.AbilityGA.Get());
+			AbilityWidget->BindAbilityData(Ability.AbilityGA.Get(), Count);
 			AbilityWidgetContainer->AddChild(AbilityWidget);
+
+			AbilityWidget->OnExecuteAbility.AddDynamic(this, &UTheOneAbilityPanel::OnExecuteAbility);
+			
+			Count++;
 		}
 	}
 	
@@ -50,7 +56,17 @@ UTheOneAbilityWidget* UTheOneAbilityPanel::GetAbilityWidget()
 
 void UTheOneAbilityPanel::ReleaseAbilityWidget(UTheOneAbilityWidget* InWidget)
 {
+	InWidget->OnExecuteAbility.RemoveAll(this);
 	InWidget->UnBindAbilityData();
 	InWidget->RemoveFromParent();
 	AbilityWidgetPool.Add(InWidget);
+}
+
+void UTheOneAbilityPanel::OnExecuteAbility(int InIntPayLoad)
+{
+	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+	FTheOneUseAbilityCommandPayload Payload;
+	Payload.CommandType = ETheOneUseAbilityCommandType::UseAbility;
+	Payload.IntPayload = InIntPayLoad;
+	EventSystem->UseAbilityCommand.Broadcast(Payload);
 }
