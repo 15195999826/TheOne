@@ -19,8 +19,6 @@ class THEONE_API UTheOneAttributeLine : public UUserWidget
 {
 	GENERATED_BODY()
 
-	static TMap<FGameplayTag, TFunction<FGameplayAttribute()>> Tag2Attribute;
-	
 protected:
 	virtual void NativePreConstruct() override;
 	void RemoveListeners(const FGameplayAttribute& Attribute);

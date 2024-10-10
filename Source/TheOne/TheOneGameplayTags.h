@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AttributeSet.h"
 #include "NativeGameplayTags.h"
 
 namespace TheOneGameplayTags
@@ -11,6 +12,7 @@ namespace TheOneGameplayTags
 	THEONE_API	extern const TArray<FGameplayTag> VitalAttributes;
 	THEONE_API	extern const TArray<FGameplayTag> RuntimeAttributes;
 	THEONE_API	extern const TMap<FGameplayTag, FText> Attributes2Text;
+	THEONE_API  extern const TMap<FGameplayTag, TFunction<FGameplayAttribute()>> Tag2Attribute;
 
 	// Vital Attribute Tags
 	THEONE_API    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MaxHealth);
@@ -127,4 +129,10 @@ namespace TheOneGameplayTags
 	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Battle_Event_Projectile_Dodge);
 	
 	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Battle_Event_Projectile_End);
+
+	// 移动事件
+	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Battle_Event_BeforeMove);
+	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Battle_Event_AfterMove);
+	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Battle_Event_EnterZOC);
+	THEONE_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Battle_Event_LeaveZOC);
 };

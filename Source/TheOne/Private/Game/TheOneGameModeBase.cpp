@@ -8,7 +8,6 @@
 #include "EngineUtils.h"
 #include "TheOneBlueprintFunctionLibrary.h"
 #include "TheOneLogChannels.h"
-#include "AbilitySystem/TheOneAttributeSet.h"
 #include "AbilitySystem/TheOneLifeAttributeSet.h"
 #include "AbilitySystem/Abilities/TheOneGameplayAbility.h"
 #include "AbilitySystem/Abilities/TheOneDataDrivePassiveGA.h"
@@ -25,6 +24,7 @@
 #include "HexGrid/HexAStarNavMesh.h"
 #include "HexGrid/HexGrid.h"
 #include "Item/TheOneItemSystem.h"
+#include "Actor/TheOneLevelSettingActor.h"
 #include "Subsystems/TheOneContextSystem.h"
 
 UTheOneAutoChessBattleComponent* ATheOneGameModeBase::GetAutoChessBattleComponent() const
@@ -208,13 +208,11 @@ void ATheOneGameModeBase::PostInitializeComponents()
 
 void ATheOneGameModeBase::BeginPlay()
 {
-	FVector A = FVector(0, 0, 0);
-	FVector B = FVector(1000, 1000, 0);
-	// 进行100次Lerp
-	for (int i = 0; i < 100; i++)
+	// 设置LevelSetting
+	for (TActorIterator<ATheOneLevelSettingActor> It(GetWorld()); It; ++It)
 	{
-		FVector C = FMath::Lerp(A, B, i / 100.f);
-		UE_LOG(LogTheOne, Log, TEXT("Lerp: %s"), *C.ToString());
+		GetWorld()->GetSubsystem<UTheOneContextSystem>()->LevelSetting = *It;
+		break;
 	}
 	
 	auto GI = GetWorld()->GetGameInstance<UTheOneGameInstance>();
@@ -365,20 +363,8 @@ ATheOneAIController* ATheOneGameModeBase::SpawnOneAIInternal(TSubclassOf<ATheOne
 
 					TheOneCharacter->GetLifeAttributeSet()->SetHealth(TheOneCharacter->GetLifeAttributeSet()->GetMaxHealth());
 					TheOneCharacter->GetLifeAttributeSet()->SetMana(TheOneCharacter->GetLifeAttributeSet()->GetMaxMana());
-					
-					auto ASC = TheOneCharacter->GetAbilitySystemComponent();
-					auto CharacterAbilities = MinionTemplate->Ability.AbilityRows;
-					for (const auto& RowName : CharacterAbilities)
-					{
-						FGameplayAbilitySpecHandle GAHandle;
-						UTheOneGeneralGA* InstancedAbility = nullptr;
-						if (UTheOneBlueprintFunctionLibrary::TheOneGiveAbility(ASC, RowName, GAHandle, InstancedAbility))
-						{
-							check(TheOneCharacter->CharacterAbilityMap.Contains(GAHandle) == false);
-							TheOneCharacter->CharacterAbilityMap.Add(GAHandle, InstancedAbility);
-						}
-					}
 
+					auto ASC = TheOneCharacter->GetAbilitySystemComponent();
 					// 给与数据驱动通用被动技能
 					auto Spec = FGameplayAbilitySpec(GSettings->DefaultDTDrivePassiveGA, 1);
 					FGameplayAbilitySpecHandle GAHandle = ASC->GiveAbility(Spec);
@@ -388,7 +374,20 @@ ATheOneAIController* ATheOneGameModeBase::SpawnOneAIInternal(TSubclassOf<ATheOne
 					TheOneCharacter->DataDrivePassiveGA = InstancedAbility;
 					bool ActiveDataDrivePassive =  ASC->TryActivateAbility(GAHandle);
 					check(ActiveDataDrivePassive);
-
+					
+					
+					auto CharacterAbilities = MinionTemplate->Ability.AbilityRows;
+					for (const auto& RowName : CharacterAbilities)
+					{
+						FGameplayAbilitySpecHandle NewGAHandle;
+						UTheOneGeneralGA* NewInstancedAbility = nullptr;
+						if (UTheOneBlueprintFunctionLibrary::TheOneGiveAbility(TheOneCharacter->DataDrivePassiveGA.Get(), ASC, RowName, NewGAHandle, NewInstancedAbility))
+						{
+							check(TheOneCharacter->CharacterAbilityMap.Contains(GAHandle) == false);
+							TheOneCharacter->CharacterAbilityMap.Add(NewGAHandle, NewInstancedAbility);
+						}
+					}
+					
 					// 装备默认武器
 					TheOneCharacter->DefaultWeaponRow = MinionTemplate->DefaultWeaponConfigRow.RowName;
 					UTheOneBlueprintFunctionLibrary::Equip(TheOneCharacter, INDEX_NONE, ETheOneCharacterBagSlotType::MainHand);

@@ -7,6 +7,7 @@
 #include "TheOneLogChannels.h"
 #include "AbilitySystem/TheOneAttributeSet.h"
 #include "AbilitySystem/TheOneLifeAttributeSet.h"
+#include "AbilitySystem/Abilities/TheOneDataDrivePassiveGA.h"
 #include "AbilitySystem/Abilities/TheOneGameplayAbility.h"
 #include "Actor/TheOneProjectileActor.h"
 #include "Character/TheOneCharacterBase.h"
@@ -19,7 +20,7 @@ void FTheOneAbilityAction::DoAction(AActor* ActionExecutor, const FTheOneAbility
 	// Todo: Caster 可以为投射物等， 通过接口可以获取真正的施法者
 	
 	// 查询目标
-	const TArray<AActor*>& Targets = GetTargets(ActionExecutor, InTargetSelector, DrawDebug);
+	const TArray<AActor*>& Targets = GetTargets(ActionExecutor, InTargetSelector, FromAbility, DrawDebug);
 
 	switch (ActionData.ActionType)
 	{
@@ -135,7 +136,7 @@ void FTheOneAbilityAction::DoActionDamageInternal(AActor* SourceActor, AActor* T
 }
 
 TArray<AActor*> FTheOneAbilityAction::GetTargets(AActor* ActionExecutor,
-	const FTheOneAbilityTargetSelector& InTargetSelector, bool DrawDebug)
+	const FTheOneAbilityTargetSelector& InTargetSelector, UTheOneGameplayAbility* FromAbility, bool DrawDebug)
 {
 	TArray<AActor*> Ret;
 	switch (InTargetSelector.TargetSelectorType)
@@ -155,7 +156,7 @@ TArray<AActor*> FTheOneAbilityAction::GetTargets(AActor* ActionExecutor,
 					}
 				}
 			}
-		break;
+			break;
 		case ETheOneTargetSelectorType::HitBox:
 			{
 				for (const auto& HitBox : InTargetSelector.HiBoxes)
@@ -183,7 +184,7 @@ TArray<AActor*> FTheOneAbilityAction::GetTargets(AActor* ActionExecutor,
 					}
 				}
 			}
-		break;
+			break;
 		case ETheOneTargetSelectorType::FromInterface:
 			{
 				if (auto HitTarget = Cast<ITheOneHitTarget>(ActionExecutor))
@@ -195,10 +196,20 @@ TArray<AActor*> FTheOneAbilityAction::GetTargets(AActor* ActionExecutor,
 					}
 				}
 			}
-		break;
+			break;
 		case ETheOneTargetSelectorType::Special:
 			// Todo: Special
-				break;
+			break;
+		case ETheOneTargetSelectorType::Invalid:
+			break;
+		case ETheOneTargetSelectorType::TriggerActor:
+			{
+				if (auto PassiveGA = Cast<UTheOneDataDrivePassiveGA>(FromAbility))
+				{
+					Ret.Add(PassiveGA->GetCurrentEventTriggerActor());
+				}
+			}
+			break;
 	}
 
 	return Ret;

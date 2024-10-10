@@ -59,6 +59,17 @@ void UAbilityTask_BattleEventPak::Activate()
 			GameplayEventCallback(TheOneGameplayTags::Battle_Event_Projectile_End, Payload);
 		});
 		BattleEventHandleMap.Add(TheOneGameplayTags::Battle_Event_Projectile_End, Handle7);
+		auto Handle8 = ASC->GenericGameplayEventCallbacks.FindOrAdd(TheOneGameplayTags::Battle_Event_EnterZOC).AddLambda([this](const FGameplayEventData* Payload)
+		{
+			GameplayEventCallback(TheOneGameplayTags::Battle_Event_EnterZOC, Payload);
+		});
+		BattleEventHandleMap.Add(TheOneGameplayTags::Battle_Event_EnterZOC, Handle8);
+		// AfterMove
+		auto Handle9 = ASC->GenericGameplayEventCallbacks.FindOrAdd(TheOneGameplayTags::Battle_Event_LeaveZOC).AddLambda([this](const FGameplayEventData* Payload)
+		{
+			GameplayEventCallback(TheOneGameplayTags::Battle_Event_LeaveZOC, Payload);
+		});
+		BattleEventHandleMap.Add(TheOneGameplayTags::Battle_Event_LeaveZOC, Handle9);
 	}
 
 	
@@ -82,7 +93,7 @@ void UAbilityTask_BattleEventPak::OnDestroy(bool bInOwnerFinished)
 }
 
 void UAbilityTask_BattleEventPak::GameplayEventCallback(FGameplayTag MatchingTag, const FGameplayEventData* Payload) const
-{
+{ 
 	ensureMsgf(Payload, TEXT("GameplayEventCallback expected non-null Payload"));
 	FGameplayEventData TempPayload = Payload ? *Payload : FGameplayEventData{};
 	TempPayload.EventTag = MatchingTag;

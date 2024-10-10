@@ -113,7 +113,7 @@ AHexGrid* UTheOneBlueprintFunctionLibrary::GetHexGrid(const UObject* WorldContex
 	return ContextSystem->HexGrid;
 }
 
-bool UTheOneBlueprintFunctionLibrary::TheOneGiveAbility(UAbilitySystemComponent* InASC, const FName& InRowName, FGameplayAbilitySpecHandle& OutGAHandle, UTheOneGeneralGA*& OutGAInstance)
+bool UTheOneBlueprintFunctionLibrary::TheOneGiveAbility(UTheOneDataDrivePassiveGA* DataDrivePassiveGa, UAbilitySystemComponent* InASC, const FName& InRowName, FGameplayAbilitySpecHandle& OutGAHandle, UTheOneGeneralGA*& OutGAInstance)
 {
 	auto AbilityDT = GetDefault<UTheOneDataTableSettings>()->AbilityTable.LoadSynchronous();
 	FTheOneAbilityConfig* AbilityRow = AbilityDT->FindRow<FTheOneAbilityConfig>(
@@ -123,28 +123,61 @@ bool UTheOneBlueprintFunctionLibrary::TheOneGiveAbility(UAbilitySystemComponent*
 		FDataTableRowHandle AbilityRowHandle;
 		AbilityRowHandle.RowName = InRowName;
 		AbilityRowHandle.DataTable = AbilityDT;
-		FGameplayAbilitySpecHandle GAHandle = InASC->GiveAbility(FGameplayAbilitySpec(AbilityRow->AbilityClass, 1));
-
-		UTheOneGeneralGA* InstancedAbility = Cast<UTheOneGeneralGA>(
-			InASC->FindAbilitySpecFromHandle(GAHandle)->GetPrimaryInstance());
-		InstancedAbility->SetUpGeneralAbility(AbilityRowHandle, AbilityRow, 1);
-
-		if (AbilityRow->AbilityType == ETheOneAbilityType::Passive)
-		{
-			if (!InASC->TryActivateAbility(GAHandle))
-			{
-				UE_LOG(LogTheOne, Error, TEXT("Failed to activate Passive Ability %s For Owner %s"), *InRowName.ToString(), *InASC->GetOwner()->GetName());
-				return false;
-			}
+		
+		TSubclassOf<UGameplayAbility> ToGiveAbilityClass = nullptr;
+		switch (AbilityRow->AbilitySource) {
+			case ETheOneAbilitySource::DataTableDrive:
+				{
+					auto GeneralSettings = GetDefault<UTheOneGeneralSettings>();
+					if (AbilityRow->AbilityType == ETheOneAbilityType::Active)
+					{
+						ToGiveAbilityClass = GeneralSettings->DefaultActiveAbilityGA;
+					}
+				}
+				break;
+			case ETheOneAbilitySource::SpecialBP:
+			case ETheOneAbilitySource::LuaDrive:
+				ToGiveAbilityClass = AbilityRow->AbilityClass;
+				break;
 		}
 
-		OutGAHandle = GAHandle;
-		OutGAInstance = InstancedAbility;
-		return true;
+		if (ToGiveAbilityClass)
+		{
+			FGameplayAbilitySpecHandle GAHandle = InASC->GiveAbility(FGameplayAbilitySpec(ToGiveAbilityClass, 1));
+
+			UTheOneGeneralGA* InstancedAbility = Cast<UTheOneGeneralGA>(
+				InASC->FindAbilitySpecFromHandle(GAHandle)->GetPrimaryInstance());
+			InstancedAbility->SetUpGeneralAbility(AbilityRowHandle, AbilityRow, 1);
+
+			if (AbilityRow->AbilityType == ETheOneAbilityType::Passive)
+			{
+				if (!InASC->TryActivateAbility(GAHandle))
+				{
+					UE_LOG(LogTheOne, Error, TEXT("Failed to activate Passive Ability %s For Owner %s"), *InRowName.ToString(), *InASC->GetOwner()->GetName());
+					return false;
+				}
+			}
+
+			OutGAHandle = GAHandle;
+			OutGAInstance = InstancedAbility;
+			return true;
+		}
+		
+		if (DataDrivePassiveGa && AbilityRow->AbilitySource == ETheOneAbilitySource::DataTableDrive && AbilityRow->AbilityType == ETheOneAbilityType::Passive)
+		{
+			// Todo: 在通用被动技能中注册事件
+			DataDrivePassiveGa->RegisterBattleEvent(AbilityRow);
+
+			return false;
+		}
+
+		UE_LOG(LogTheOne, Error, TEXT("AbilityRow %s 错误的技能配置.DataDriveiDA Is nullptr: %d"), *InRowName.ToString(), DataDrivePassiveGa == nullptr);
 	}
-
-	UE_LOG(LogTheOne, Error, TEXT("AbilityRow is nullptr For RowName: %s"), *InRowName.ToString());
-
+	else
+	{
+		UE_LOG(LogTheOne, Error, TEXT("AbilityRow is nullptr For RowName: %s"), *InRowName.ToString());
+	}
+	
 	return false;
 }
 
@@ -226,7 +259,7 @@ void UTheOneBlueprintFunctionLibrary::Equip(ATheOneCharacterBase* InCharacter, i
 	{
 		UTheOneGeneralGA* WeaponAbility = nullptr;
 		FGameplayAbilitySpecHandle OutGAHandle;
-		if (TheOneGiveAbility(ASC, AbilityRow.RowName, OutGAHandle, WeaponAbility))
+		if (TheOneGiveAbility(InCharacter->DataDrivePassiveGA.Get(), ASC, AbilityRow.RowName, OutGAHandle, WeaponAbility))
 		{
 			FTheOneAbilityCache Cache;
 			Cache.AbilitySpecHandle = OutGAHandle;

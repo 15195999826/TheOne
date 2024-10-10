@@ -25,8 +25,6 @@ public:
 	void SetUpGeneralAbility(const FDataTableRowHandle& InRow, const FTheOneAbilityConfig* InAbilityConfig, int InLevel);
 	
 	ETheOneAbilityReleaseTarget GetTargetType() const;
-	
-	ETheOneAbilityReleaseRule GetReleaseRule() const;
 
 	const FDataTableRowHandle& GetAbilityRowHandle() const { return AbilityRow; }
 protected:

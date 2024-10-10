@@ -67,6 +67,8 @@ struct FHexTile
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GraphAStarExample|HexGrid")
 	TWeakObjectPtr<AActor> StandingActor;
 
+	bool bOpponentControl{false};
+
 	bool HasActor() const
 	{
 		return StandingActor.IsValid();
@@ -151,6 +153,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly)
 	TObjectPtr<UInstancedStaticMeshComponent> HexGridWireframe;
+
+	UPROPERTY(VisibleDefaultsOnly)
+	TObjectPtr<UInstancedStaticMeshComponent> HexGridFaceIndicator;
 	
 	UPROPERTY(VisibleDefaultsOnly)
 	TObjectPtr<UInstancedStaticMeshComponent> HexGridLand;
@@ -186,6 +191,13 @@ public:
 	float WireframeOffsetZ{0.5f};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
 	FLinearColor WireframeDefaultColor{};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	bool DrawFaceIndicator{true};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	float FaceIndicatorOffsetZ{0.5f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "_HexGrid")
+	FLinearColor FaceIndicatorDefaultColor{};
+	
 	/**
 	 * 通过在编辑器中配置它来创建区块
 	 * Layout of the tile (i know is very misleading, please read the article)
@@ -314,7 +326,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
 	FHCubeCoord GetNeighbor(const FHCubeCoord &H, const FHCubeCoord &Dir);
 
-	TArray<FHCubeCoord> GetRangeCoords(const FHCubeCoord& Center, int32 Radius) const;
+	TArray<FHCubeCoord> GetRangeCoords(const FHCubeCoord& Center, int32 Radius, bool OnlyExact = false) const;
 	
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
 	TArray<FHexTile> GetRange(const FHCubeCoord& Center, int32 Radius);
@@ -337,6 +349,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetWireFrameColor(int Index, const FLinearColor& InColor, float NewHeightOffset = 0.f);
+	UFUNCTION(BlueprintCallable)
+	void SetFaceIndicatorColor(int Index, const FLinearColor& InColor, float NewHeightOffset = 0.f);
 	
 	FHCubeCoord GetHexCoordByXY(int32 Row, int32 Column) const;
 protected:
@@ -347,4 +361,5 @@ private:
 	FHDirections HDirections{};
 
 	TArray<float> WireframeDefaultCustomData;
+	TArray<float> FaceIndicatorDefaultCustomData;
 };

@@ -23,6 +23,10 @@ AHexGrid::AHexGrid()
 	HexGridWireframe = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("HexGridWireframe"));
 	HexGridWireframe->SetupAttachment(SceneRoot);
 	
+	HexGridFaceIndicator = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("HexGridFaceIndicator"));
+	HexGridFaceIndicator->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HexGridFaceIndicator->SetupAttachment(SceneRoot);
+	
 	HexGridLand = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("RegularHexTile"));
 	HexGridLand->SetupAttachment(SceneRoot);
 }
@@ -69,6 +73,7 @@ void AHexGrid::CreateGrid()
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateGrid);
 	WireframeDefaultCustomData = {WireframeDefaultColor.R, WireframeDefaultColor.G, WireframeDefaultColor.B, WireframeDefaultColor.A};
+	FaceIndicatorDefaultCustomData = {FaceIndicatorDefaultColor.R, FaceIndicatorDefaultColor.G, FaceIndicatorDefaultColor.B, FaceIndicatorDefaultColor.A};
 
 	auto MeshComs = SceneRoot->GetAttachChildren();
 	TArray<UInstancedStaticMeshComponent*> MeshComsCache;
@@ -77,7 +82,7 @@ void AHexGrid::CreateGrid()
 		if (auto Mesh = Cast<UInstancedStaticMeshComponent>(MeshCom))
 		{
 			Mesh->ClearInstances();
-			if (Mesh == HexGridLand || Mesh == HexGridWireframe)
+			if (Mesh == HexGridLand || Mesh == HexGridWireframe || Mesh == HexGridFaceIndicator)
 			{
 				continue;
 			}
@@ -370,6 +375,13 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 		HexGridWireframe->SetCustomData(Index, WireframeDefaultCustomData);
 	}
 
+	if (DrawFaceIndicator)
+	{
+		FTransform FaceIndicatorTransform = FTransform(Offset, TileLocation + FVector(0.f, 0.f, ScaleZ * TileConfig.BaseRenderHeight + FaceIndicatorOffsetZ), FVector(ScaleXY, ScaleXY, 1));
+		auto Index = HexGridFaceIndicator->AddInstance(FaceIndicatorTransform, true);
+		HexGridFaceIndicator->SetCustomData(Index, FaceIndicatorDefaultCustomData);
+	}
+
 	if (DrawLand)
 	{
 		// 目前默认的Tile的Mesh是以100为标准制作的， 因此这里按照100进行缩放
@@ -584,7 +596,7 @@ FHCubeCoord AHexGrid::GetNeighbor(const FHCubeCoord &H, const FHCubeCoord &Dir)
 	return H + Dir;
 }
 
-TArray<FHCubeCoord> AHexGrid::GetRangeCoords(const FHCubeCoord& Center, int32 Radius) const
+TArray<FHCubeCoord> AHexGrid::GetRangeCoords(const FHCubeCoord& Center, int32 Radius, bool OnlyExact) const
 {
 	TArray<FHCubeCoord> Result;
 
@@ -593,9 +605,18 @@ TArray<FHCubeCoord> AHexGrid::GetRangeCoords(const FHCubeCoord& Center, int32 Ra
 		for (int32 dr = FMath::Max(-Radius, -dq - Radius); dr <= FMath::Min(Radius, -dq + Radius); ++dr)
 		{
 			int32 ds = -dq - dr;
+			if (OnlyExact)
+			{
+				if (FMath::Max3(FMath::Abs(dq), FMath::Abs(dr), FMath::Abs(ds)) != Radius)
+				{
+					continue;
+				}
+			}
+
 			Result.Add(FHCubeCoord{FIntVector(Center.QRS.X + dq, Center.QRS.Y + dr, Center.QRS.Z + ds)});
 		}
 	}
+	
 	return Result;
 }
 
@@ -829,6 +850,18 @@ void AHexGrid::SetWireFrameColor(int Index, const FLinearColor& InColor, float N
 	HexGridWireframe->GetInstanceTransform(Index, Transform, true);
 	Transform.SetLocation(Tile.WorldPosition + FVector(0.f, 0.f, Height + WireframeOffsetZ + NewHeightOffset));
 	HexGridWireframe->UpdateInstanceTransform(Index,Transform, true);
+}
+
+void AHexGrid::SetFaceIndicatorColor(int Index, const FLinearColor& InColor, float NewHeightOffset)
+{
+	TArray<float> CustomData {InColor.R, InColor.G, InColor.B, InColor.A};
+	HexGridFaceIndicator->SetCustomData(Index, CustomData);
+	auto Height = GetTileHeightByIndex(Index);
+	const auto& Tile = GridTiles[Index];
+	FTransform Transform ;
+	HexGridFaceIndicator->GetInstanceTransform(Index, Transform, true);
+	Transform.SetLocation(Tile.WorldPosition + FVector(0.f, 0.f, Height + FaceIndicatorOffsetZ + NewHeightOffset));
+	HexGridFaceIndicator->UpdateInstanceTransform(Index,Transform, true);
 }
 
 FHCubeCoord AHexGrid::GetHexCoordByXY(int32 Row, int32 Column) const

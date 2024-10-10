@@ -44,22 +44,53 @@ enum class ETheOneAbilityReleaseRule : uint8
 
 /////// Ability Structs Start ///////
 
+/**
+ * 用于表达一个主动技能如何释放
+ */
+USTRUCT(BlueprintType)
+struct FTheOneActiveAbilityData
+{
+	GENERATED_BODY()
+
+	FTheOneActiveAbilityData(): TargetType()
+	{
+	}
+
+	// For 主动技能
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	ETheOneAbilityReleaseTarget TargetType;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "施法范围"))
+	int ReleaseDistance = 0;
+};
+
+/**
+ * 用于表达一个被动技能如何触发
+ * Todo: 以及触发时执行的无需动画的功能
+ */
+USTRUCT(BlueprintType)
+struct FTheOnePassiveAbilityData
+{
+	GENERATED_BODY()
+
+	FTheOnePassiveAbilityData()
+	{
+	}
+
+	UPROPERTY(EditAnywhere, meta=(DisplayName = "被动技能触发点"))
+	TArray<FGameplayTag> TriggerActionPoint;
+
+	// Todo: 其它配置
+	
+};
+
 USTRUCT(BlueprintType)
 struct FTheOneAbilityConfig: public FTableRowBase
 {
 	GENERATED_BODY()
 
-	FTheOneAbilityConfig(): TargetType(), ReleaseRule()
+	FTheOneAbilityConfig()
 	{
-		auto DTSettings = GetDefault<UTheOneDataTableSettings>();
-		if (DTSettings)
-		{
-			AbilityClass = DTSettings->DefaultTableAbility;
-		}
-		else
-		{
-			AbilityClass = nullptr;
-		}
 	}
 
 	UPROPERTY(EditAnywhere)
@@ -88,7 +119,7 @@ struct FTheOneAbilityConfig: public FTableRowBase
 	 *
 	 * lua驱动的技能， 无论主动还是被动， 都会赋予AbilityClass
 	 */
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta=(EditCondition = "AbilitySource == ETheOneAbilitySource::SpecialBP || AbilitySource == ETheOneAbilitySource::LuaDrive", EditConditionHides))
 	TSubclassOf<UTheOneGameplayAbility> AbilityClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -97,19 +128,17 @@ struct FTheOneAbilityConfig: public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	ETheOneAbilityType AbilityType = ETheOneAbilityType::Active;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	ETheOneAbilityReleaseTarget TargetType;
-	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "行动点消耗"))
 	int Cost = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "施法范围"))
-	int ReleaseDistance = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "主动技能配置", EditConditionHides, EditCondition = "AbilityType == ETheOneAbilityType::Active&&AbilitySource == ETheOneAbilitySource::DataTableDrive"))
+	FTheOneActiveAbilityData ActiveAbilityData;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	ETheOneAbilityReleaseRule ReleaseRule;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "被动技能配置", EditConditionHides, EditCondition = "AbilityType == ETheOneAbilityType::Passive&&AbilitySource == ETheOneAbilitySource::DataTableDrive"))
+	FTheOnePassiveAbilityData PassiveAbilityData;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition, EditConditionHides = "AbilitySource == ETheOneAbilitySource::DataTableDrive"))
+	// 仅用于带有动画的技能，用于触发动画节点的功能 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "动画触发点功能", EditConditionHides, EditCondition = "AbilitySource == ETheOneAbilitySource::DataTableDrive"))
 	TArray<FTheOneActionPointConfig> ActionPoints;
 };
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Actor/TheOneProjectileActor.h"
 #include "Types/TheOneBattleContext.h"
 #include "TheOneBattle.generated.h"
 
@@ -18,6 +19,8 @@ class THEONE_API ATheOneBattle : public AActor
 {
 	GENERATED_BODY()
 
+	static ETheOneCamp GetOppositeCamp(ATheOneCharacterBase* Character);
+	
 public:
 	void OnEnterBattle();
 
@@ -35,20 +38,26 @@ protected:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UTheOneBattleWindow* GetBattleWindow() const;
+
+	UFUNCTION()
+	void BeforeCharacterMove(ATheOneCharacterBase* InCharacter);
+	UFUNCTION()
+	void AfterCharacterMove(ATheOneCharacterBase* InCharacter);
 	
 private:
+	TMap<uint32, TWeakObjectPtr<ATheOneCharacterBase>> InBattleCharacters;
+	
 	FSimpleDelegate WaitSignal;
 	int32 EnemyTeamID;
 	
 	void TeamMoveToBattleArea(const TArray<uint32>& Team, FRotator InRotation, int InStartRow, int InStartCol,
-							  ATheOneGameModeBase* GameMode, AHexGrid* HexGrid,
-							  UTheOneTeamSystem* TeamSystem);
+	                          ATheOneGameModeBase* GameMode, AHexGrid* HexGrid,
+	                          UTheOneTeamSystem* TeamSystem);
 
 	void WaitSignalChangeTo(ETheOneBattleStage NewStage);
 	
 	void NextRound();
 	void NextCharacterTurn();
-
-
+	
 	void OnCharacterEndTurn(ATheOneCharacterBase* InCharacter);
 };

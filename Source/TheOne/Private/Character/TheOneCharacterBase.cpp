@@ -176,6 +176,9 @@ AActor* ATheOneCharacterBase::GetTargetActor_Implementation() const
 
 void ATheOneCharacterBase::Die()
 {
+	// 标记死亡
+	AbilitySystemComponent->AddLooseGameplayTag(TheOneGameplayTags::Status_Death);
+	
 	auto AIController = Cast<AAIController>(GetController());
 	if (AIController)
 	{
@@ -185,6 +188,10 @@ void ATheOneCharacterBase::Die()
 			HexPathFollowingComponent->OnAIDead();
 		}
 	}
+
+	// 关闭碰撞
+	this->SetActorEnableCollision(false);
+	// 蓝图中等待一段时间隐藏血条
 	
 	BP_Die();
 

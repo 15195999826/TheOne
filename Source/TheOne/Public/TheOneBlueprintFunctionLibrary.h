@@ -12,6 +12,7 @@
 #include "Types/TheOneAdditionMesh.h"
 #include "TheOneBlueprintFunctionLibrary.generated.h"
 
+class UTheOneDataDrivePassiveGA;
 enum class ETheOneImportantUI : uint8;
 struct FGameplayAbilitySpecHandle;
 class UTheOneGeneralGA;
@@ -45,7 +46,10 @@ public:
 	UFUNCTION(BlueprintPure, meta=(WorldContext="WorldContextObject"))
 	static AHexGrid* GetHexGrid(const UObject* WorldContextObject);
 
-	static bool TheOneGiveAbility(UAbilitySystemComponent* InASC, const FName& InAbilityRowName, FGameplayAbilitySpecHandle& OutGAHandle, UTheOneGeneralGA*& OutGAInstance);
+	/**
+	 * 返回是否给与了新的技能
+	 */
+	static bool TheOneGiveAbility(UTheOneDataDrivePassiveGA* DataDrivePassiveGa, UAbilitySystemComponent* InASC, const FName& InAbilityRowName, FGameplayAbilitySpecHandle& OutGAHandle, UTheOneGeneralGA*& OutGAInstance);
 	
 	static void AttachAdditionMeshToCharacter(ATheOneCharacterBase* InCharacter, const FTheOneAdditionMesh& InAdditionMesh, FName InTag = NAME_None);
 

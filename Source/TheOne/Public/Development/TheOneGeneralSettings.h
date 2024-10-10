@@ -33,4 +33,7 @@ public:
 
 	UPROPERTY(config, EditAnywhere, Category=Character)
 	TSubclassOf<UTheOneDataDrivePassiveGA> DefaultDTDrivePassiveGA;
+
+	UPROPERTY(config, EditAnywhere)
+	TSubclassOf<UTheOneGameplayAbility> DefaultActiveAbilityGA;
 };

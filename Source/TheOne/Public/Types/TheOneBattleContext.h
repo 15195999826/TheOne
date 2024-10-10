@@ -16,6 +16,29 @@ enum class ETheOneBattleStage : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FTheOneMapContext
+{
+	GENERATED_BODY()
+
+	FTheOneMapContext()
+	{
+	}
+	
+};
+
+// 战斗中各个棋子的上下文
+USTRUCT(BlueprintType)
+struct FTheOneChessContext
+{
+	GENERATED_BODY()
+
+	FTheOneChessContext()
+	{
+	}
+	
+};
+
+USTRUCT(BlueprintType)
 struct FTheOneBattleContext
 {
 	GENERATED_BODY()
@@ -32,6 +55,10 @@ struct FTheOneBattleContext
 	int CurrentTurn;
 	UPROPERTY(BlueprintReadOnly)
 	TArray<ATheOneCharacterBase*> ActionQueue;
+
+	TMap<uint32,FTheOneChessContext> ChessContextMap;
+
+	FTheOneMapContext MapContext;
 
 private:
 	bool EnterNewStage = false;

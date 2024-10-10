@@ -3,7 +3,9 @@
 
 #include "Game/TheOneBattle.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/TheOneAttributeSet.h"
+#include "Actor/TheOneLevelSettingActor.h"
 #include "AI/TheOneAIController.h"
 #include "Game/TheOneEventSystem.h"
 #include "Game/TheOneGameInstance.h"
@@ -16,10 +18,19 @@
 #include "Subsystems/TheOneTeamSystem.h"
 #include "UI/TheOneUIRoot.h"
 
+
+ETheOneCamp ATheOneBattle::GetOppositeCamp(ATheOneCharacterBase* Character)
+{
+	ETheOneCamp CurrentCamp = IInHexActorInterface::Execute_GetCamp(Character);
+	return CurrentCamp == ETheOneCamp::Player ? ETheOneCamp::Enemy : ETheOneCamp::Player;
+}
+
 void ATheOneBattle::OnEnterBattle()
 {
 	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 	EventSystem->OnCharacterEndTurn.AddUObject(this, &ATheOneBattle::OnCharacterEndTurn);
+	EventSystem->NativeBeforeCharacterMove.AddDynamic(this, &ATheOneBattle::BeforeCharacterMove);
+	EventSystem->NativeAfterCharacterMove.AddDynamic(this, &ATheOneBattle::AfterCharacterMove);
 	
 	// 拿到玩家队伍的全部成员
 	auto GameMode = Cast<ATheOneGameModeBase>(UGameplayStatics::GetGameMode(this));
@@ -52,12 +63,13 @@ void ATheOneBattle::OnEnterBattle()
 
 	const auto& PlayerTeam = TeamSystem->GetTeam(TeamSystem->GetPlayerTeamID());
 	const auto& EnemyTeam = TeamSystem->GetTeam(EnemyTeamID);
-
+	// 初始化角色状态， Todo: 目前，仅重置血量, 未来数据是持续保存的
+	BattleContext = FTheOneBattleContext();
+	
 	TeamMoveToBattleArea(PlayerTeam, FRotator(0, 0, 0), PlayerStartRow, PlayerStartCol, GameMode, HexGrid, TeamSystem);
 	TeamMoveToBattleArea(EnemyTeam, FRotator(0, 180, 0), EnemyStartRow, EnemyStartCol, GameMode, HexGrid, TeamSystem);
 
-	// 初始化角色状态， Todo: 目前，仅重置血量, 未来数据是持续保存的
-	BattleContext = FTheOneBattleContext();
+
 	BattleContext.SetStage(ETheOneBattleStage::EnterNewRound);
 }
 
@@ -100,6 +112,54 @@ UTheOneBattleWindow* ATheOneBattle::GetBattleWindow() const
 	return Cast<UTheOneGameInstance>(UGameplayStatics::GetGameInstance(this))->UIRoot->BattleWindow;
 }
 
+void ATheOneBattle::BeforeCharacterMove(ATheOneCharacterBase* InCharacter)
+{
+	// 如果在某个单位的控制区内， 则抛出离开控制区事件
+	const auto& CurrentCoord = InCharacter->GetCurrentHexCoord();
+	// DrawDebugSphere(GetWorld(), GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid->HexToWorld(CurrentCoord), 100, 12, FColor::Green, false, 1.f);
+	const auto& HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+	auto OppositeCamp = GetOppositeCamp(InCharacter);
+	TArray<ATheOneCharacterBase*> LevelZOCCharacters;
+	for (const auto& Pair:InBattleCharacters)
+	{
+		if (ITheOneBattleInterface::Execute_IsDead(Pair.Value.Get()))
+		{
+			continue;
+		}
+		
+		if (IInHexActorInterface::Execute_GetCamp(Pair.Value.Get()) == OppositeCamp)
+		{
+			const auto& Coord = Pair.Value->GetCurrentHexCoord();
+			const auto& Coords = HexGrid->GetRangeCoords(Coord,1,true);
+			// 检查当前格子在不在范围内
+			for (const auto& InCoord: Coords)
+			{
+				auto Location = HexGrid->HexToWorld(InCoord);
+				// DrawDebugSphere(GetWorld(), Location, 100, 12, FColor::Red, false, 1.f);
+				if (InCoord == CurrentCoord)
+				{
+					// 触发离开控制区事件
+					LevelZOCCharacters.Add(Pair.Value.Get());
+					break;
+				}
+			}
+		}
+	}
+
+	FGameplayEventData Payload;
+	Payload.OptionalObject = InCharacter;
+	for (auto Character : LevelZOCCharacters)
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Character, TheOneGameplayTags::Battle_Event_LeaveZOC, Payload);
+	}
+}
+
+void ATheOneBattle::AfterCharacterMove(ATheOneCharacterBase* InCharacter)
+{
+	// 更新控制区
+	
+}
+
 void ATheOneBattle::OnBattleStageChanged_Implementation()
 {
 	switch (BattleContext.Stage) {
@@ -113,8 +173,15 @@ void ATheOneBattle::OnBattleStageChanged_Implementation()
 			break;
 		case ETheOneBattleStage::CharacterTurn:
 			{
-				auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 				auto CurrentCharacter = BattleContext.ActionQueue[BattleContext.CurrentTurn];
+				if (ITheOneBattleInterface::Execute_IsDead(CurrentCharacter))
+				{
+					CompleteWaitSignal();
+					return;
+				}
+				
+				auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+				
 				EventSystem->OnCharacterGetTurn.Broadcast(CurrentCharacter);
 				// 等待玩家操作结束回合
 			}
@@ -128,9 +195,11 @@ void ATheOneBattle::TeamMoveToBattleArea(const TArray<uint32>& Team, FRotator In
 	for (int i = 0; i < Team.Num(); i++)
 	{
 		auto Flag = Team[i];
+		BattleContext.ChessContextMap.Add(Flag, FTheOneChessContext());
 		const auto& CharacterUnique = TeamSystem->GetCharacterUnique(Flag);
 		auto Ctrl = GameMode->SpawnedAIMap[CharacterUnique.Flag];
 		auto Character = Ctrl->GetPawn();
+		InBattleCharacters.Add(Flag, CastChecked<ATheOneCharacterBase>(Character));
 		auto RowOffset = CharacterUnique.TeamPosition / 8;
 		auto ColOffset = CharacterUnique.TeamPosition % 8;
 		auto Row = InStartRow + RowOffset;
@@ -178,16 +247,24 @@ void ATheOneBattle::NextRound()
 	auto TeamSystem = GetWorld()->GetSubsystem<UTheOneTeamSystem>();
 	const auto& PlayerTeam = TeamSystem->GetTeam(TeamSystem->GetPlayerTeamID());
 	const auto& EnemyTeam = TeamSystem->GetTeam(EnemyTeamID);
-	auto GameMode = Cast<ATheOneGameModeBase>(UGameplayStatics::GetGameMode(this));
 	for (auto Flag : PlayerTeam)
 	{
-		auto Character = Cast<ATheOneCharacterBase>(GameMode->SpawnedAIMap[Flag]->GetPawn());
+		auto Character = InBattleCharacters[Flag].Get();
+		if (ITheOneBattleInterface::Execute_IsDead(Character))
+		{
+			continue;
+		}
 		BattleContext.ActionQueue.Add(Character);
 	}
 
 	for (auto Flag : EnemyTeam)
 	{
-		auto Character = Cast<ATheOneCharacterBase>(GameMode->SpawnedAIMap[Flag]->GetPawn());
+		auto Character = InBattleCharacters[Flag].Get();
+		if (ITheOneBattleInterface::Execute_IsDead(Character))
+		{
+			continue;
+		}
+	
 		BattleContext.ActionQueue.Add(Character);
 	}
 
@@ -226,6 +303,56 @@ void ATheOneBattle::NextCharacterTurn()
 		BattleContext.SetStage(ETheOneBattleStage::EnterNewRound);
 		return;
 	}
+	// 更新HexGridTile的寻路消耗, 如果该格子被敌方占据，寻路消耗增加
+	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+	// 更新所有Tile的控制区为false
+	for (int i = 0; i < HexGrid->GridTiles.Num(); i++)
+	{
+		auto& Tile = HexGrid->GridTiles[i];
+		Tile.bOpponentControl = false;
+		HexGrid->SetFaceIndicatorColor(i, HexGrid->FaceIndicatorDefaultColor, 0.f);
+	}
+
+	auto Character = BattleContext.ActionQueue[BattleContext.CurrentTurn];
+	ETheOneCamp OppositeCamp = GetOppositeCamp(Character);
+	
+	// 遍历所有角色，标记敌方控制区
+	for (const auto& Pair:InBattleCharacters)
+	{
+		if (ITheOneBattleInterface::Execute_IsDead(Pair.Value.Get()))
+		{
+			continue;
+		}
+		
+		if (IInHexActorInterface::Execute_GetCamp(Pair.Value.Get()) == OppositeCamp)
+		{
+			// 周围6格设置为敌方控制区
+			const auto& Coord = Pair.Value->GetCurrentHexCoord();
+			const auto& Coords = HexGrid->GetRangeCoords(Coord,1,true);
+			
+			
+			// 打印Len
+			UE_LOG(LogTheOne, Log, TEXT("Opponent Control Len: %d"), Coords.Num());
+			
+			for (const auto& InCoord: Coords)
+			{
+				UE_LOG(LogTheOne, Log, TEXT("Opponent Control: %s"), *InCoord.ToString());
+				auto& MutableTile = HexGrid->GetMutableHexTile(InCoord);
+				MutableTile.bOpponentControl = true;
+			}
+		}
+	}
+
+	auto ContextSystem = GetWorld()->GetSubsystem<UTheOneContextSystem>();
+	for (int i = 0; i < HexGrid->GridTiles.Num(); i++)
+	{
+		const auto& Tile = HexGrid->GridTiles[i];
+		if (Tile.bOpponentControl)
+		{
+			HexGrid->SetFaceIndicatorColor(i, ContextSystem->LevelSetting->OppnentCampZOCColor, 0.f);
+		}
+	}
+	
 	BattleContext.SetStage(ETheOneBattleStage::CharacterTurn);
 	// 1. 行动角色， 现实一个箭头UI
 	// 2. 左键点击一下地面，显示移动路径， 再次点击该位置，进行移动

@@ -5,6 +5,8 @@
 #include "Engine/EngineTypes.h"
 #include "GameplayTagsManager.h"
 #include "TheOneLogChannels.h"
+#include "AbilitySystem/TheOneAttributeSet.h"
+#include "AbilitySystem/TheOneLifeAttributeSet.h"
 #define LOCTEXT_NAMESPACE "TheOneGameplayTags"
 namespace TheOneGameplayTags
 {
@@ -117,7 +119,21 @@ namespace TheOneGameplayTags
 		{SetByCaller_Attribute_Runtime_Energy, LOCTEXT("Energy", "体力")},
 		{SetByCaller_Attribute_Runtime_ActionPoint, LOCTEXT("ActionPoint", "行动点数")},
 	};
+	
 
+	const TMap<FGameplayTag, TFunction<FGameplayAttribute()>> Tag2Attribute = {
+		{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxHealth, [](){return UTheOneLifeAttributeSet::GetMaxHealthAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_Health, [](){return UTheOneLifeAttributeSet::GetHealthAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_MaxHeadArmor,[](){return UTheOneLifeAttributeSet::GetMaxHeadArmorAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_HeadArmor, [](){return UTheOneLifeAttributeSet::GetHeadArmorAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_MaxBodyArmor, [](){return UTheOneLifeAttributeSet::GetMaxBodyArmorAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_BodyArmor, [](){return UTheOneLifeAttributeSet::GetBodyArmorAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxActionPoint,[](){return UTheOneAttributeSet::GetMaxActionPointAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_ActionPoint, [](){return UTheOneAttributeSet::GetActionPointAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxEnergy, [](){return UTheOneAttributeSet::GetMaxEnergyAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_Energy, [](){return UTheOneAttributeSet::GetEnergyAttribute();}},
+		{TheOneGameplayTags::SetByCaller_Attribute_Vital_Speed, [](){return UTheOneAttributeSet::GetSpeedAttribute();}},
+	};
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Physical, "SetByCaller.Damage.Physical", "SetByCaller tag used by physical damage gameplay effects.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Magical, "SetByCaller.Damage.Magical", "SetByCaller tag used by magical damage gameplay effects.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Real, "SetByCaller.Damage.Real", "SetByCaller tag used by real damage gameplay effects.");
@@ -172,6 +188,10 @@ namespace TheOneGameplayTags
 	auto BattleEventChineseTag7 = TEXT("Battle.Event.投射物.结束");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Battle_Event_Projectile_End, BattleEventChineseTag7, "投射物结束");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Battle_Event_BeforeMove, "Battle.Event.BeforeMove", "角色移动前");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Battle_Event_AfterMove, "Battle.Event.AfterMove", "角色移动后");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Battle_Event_EnterZOC, "Battle.Event.EnterZOC", "进入敌方控制区");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Battle_Event_LeaveZOC, "Battle.Event.LeaveZOC", "离开敌方控制区");
 	
 	// Unreal Movement Modes
 	const TMap<uint8, FGameplayTag> MovementModeTagMap =

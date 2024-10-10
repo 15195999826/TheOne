@@ -8,7 +8,7 @@
 
 /**
  * Async Task 不会随着 Ability 的结束而结束，需要手动结束， 它不应该用于GameplayAbility中‘
- * 像UAbilityTask_WaitGameplayEvent这样的任务, 结束技能时需要手动End
+ * 像UAbilityTask_WaitGameplayEvent这样的任务, 结束技能时不需要手动End
  */
 UCLASS()
 class THEONE_API UTheOneTestAbilityAsync : public UAbilityAsync

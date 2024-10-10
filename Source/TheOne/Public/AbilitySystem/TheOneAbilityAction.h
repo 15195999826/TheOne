@@ -24,6 +24,7 @@ enum class ETheOneTargetSelectorType
 {
 	Invalid,
 	BBTarget UMETA(DisplayName = "AI黑板目标"),
+	TriggerActor UMETA(DisplayName = "触发被动的目标"),
 	HitBox UMETA(DisplayName = "HitBox"),
 	FromInterface UMETA(DisplayName = "通过执行者接口获取"), // 执行该Action的Actor实现接口ITheOneHitTarget
 	Special UMETA(DisplayName = "特殊"),
@@ -101,8 +102,9 @@ struct FTheOneAbilityTargetSelector
 
 	UPROPERTY(EditAnywhere)
 	ETheOneTargetSelectorType TargetSelectorType;
-	
-	UPROPERTY(EditAnywhere)
+
+	// Todo: 尚未使用
+	UPROPERTY(EditAnywhere, meta=(EditConditionHides,EditCondition="TargetSelectorType == ETheOneTargetSelectorType::HitBox"))
 	TArray<ETheOneCamp> HitCamps;
 
 	UPROPERTY(EditAnywhere, meta=(EditConditionHides,EditCondition="TargetSelectorType == ETheOneTargetSelectorType::HitBox"))
@@ -166,7 +168,7 @@ USTRUCT(BlueprintType)
 struct FTheOneAbilityActionContainerConfig
 {
 	GENERATED_BODY()
-	
+	 
 	UPROPERTY(EditAnywhere, meta=(DisplayName="目标选择器"))
 	FTheOneAbilityTargetSelector TargetSelector;
 
@@ -260,7 +262,7 @@ private:
 	void DoActionDamageInternal(AActor* SourceActor, AActor* TargetActor,float InDamage, const UTheOneGameplayAbility* FromAbility) const;
 
 
-	TArray<AActor*> GetTargets(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector, bool DrawDebug);
+	TArray<AActor*> GetTargets(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector, UTheOneGameplayAbility* FromAbility, bool DrawDebug);
 
 	static float RequireActionMathExpression(const FString& MathExpression, const AActor* ActionExecutor, const AActor* TargetActor,
 										 const FActiveGameplayEffect* InSourceGE = nullptr);

@@ -21,21 +21,10 @@ ETheOneAbilityReleaseTarget UTheOneGeneralGA::GetTargetType() const
 	auto Config = AbilityRow.GetRow<FTheOneAbilityConfig>("GetTargetType");
 	if (Config)
 	{
-		return Config->TargetType;
+		return Config->ActiveAbilityData.TargetType;
 	}
 	UE_LOG(LogTheOne, Error, TEXT("AbilityConfig is nullptr"));
 	return ETheOneAbilityReleaseTarget::Enemy;
-}
-
-ETheOneAbilityReleaseRule UTheOneGeneralGA::GetReleaseRule() const
-{
-	auto Config = AbilityRow.GetRow<FTheOneAbilityConfig>("GetReleaseRule");
-	if (Config)
-	{
-		return Config->ReleaseRule;
-	}
-	UE_LOG(LogTheOne, Error, TEXT("AbilityConfig is nullptr"));
-	return ETheOneAbilityReleaseRule::Always;
 }
 
 void UTheOneGeneralGA::DoAction(FGameplayTag InActionPoint)

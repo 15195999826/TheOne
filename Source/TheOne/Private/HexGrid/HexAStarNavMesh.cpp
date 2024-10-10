@@ -269,16 +269,17 @@ FVector::FReal FGridPathFilter::GetHeuristicCost(const int32 StartNodeRef, const
 #if WITH_EDITOR || UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	check(NavMeshRef.HexGrid->GridTiles.IsValidIndex(EndNodeRef));
 #endif
+	auto ExtraCost = NavMeshRef.HexGrid->GridTiles[EndNodeRef].bOpponentControl? 1000.f : 0.f;
 	switch (NavMeshRef.HexGrid->TileConfig.HeuristicCostType) {
 		case EHAStarHeuristicCostType::Nearest:
-			return 1.f;
+			return 1.f + ExtraCost;
 		case EHAStarHeuristicCostType::Manhattan:
-			return static_cast<float>(NavMeshRef.HexGrid->GetDistanceByIndex(StartNodeRef, EndNodeRef));
+			return static_cast<float>(NavMeshRef.HexGrid->GetDistanceByIndex(StartNodeRef, EndNodeRef)) + ExtraCost;
 		case EHAStarHeuristicCostType::ManhattanAndCost:
 			return static_cast<float>(NavMeshRef.HexGrid->GetDistanceByIndex(StartNodeRef, EndNodeRef)) + NavMeshRef.
 				HexGrid->GridTiles[EndNodeRef].Cost + FMath::Abs(
 					NavMeshRef.HexGrid->GridTiles[StartNodeRef].Height - NavMeshRef.HexGrid->GridTiles[EndNodeRef].
-					Height);
+					Height) + ExtraCost;
 	}
 
 	// 当启发函数h(n)始终为0，则将由g(n)决定节点的优先级，此时算法就退化成了Dijkstra算法
@@ -299,11 +300,12 @@ FVector::FReal FGridPathFilter::GetTraversalCost(const int32 StartNodeRef, const
 #if WITH_EDITOR || UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		check(NavMeshRef.HexGrid->GridTiles.IsValidIndex(StartNodeRef))
 #endif
+		auto ExtraCost = NavMeshRef.HexGrid->GridTiles[EndNodeRef].bOpponentControl? 1000.f : 0.f;
 		switch (NavMeshRef.HexGrid->TileConfig.TraversalCostType) {
 			case EHAStarTraversalCostType::TileCost:
-				return NavMeshRef.HexGrid->GridTiles[EndNodeRef].Cost;
+				return NavMeshRef.HexGrid->GridTiles[EndNodeRef].Cost + ExtraCost;
 			case EHAStarTraversalCostType::TileAndHeightCost:
-				return NavMeshRef.HexGrid->GridTiles[EndNodeRef].Cost + FMath::Abs(NavMeshRef.HexGrid->GridTiles[StartNodeRef].Height - NavMeshRef.HexGrid->GridTiles[EndNodeRef].Height);
+				return NavMeshRef.HexGrid->GridTiles[EndNodeRef].Cost + FMath::Abs(NavMeshRef.HexGrid->GridTiles[StartNodeRef].Height - NavMeshRef.HexGrid->GridTiles[EndNodeRef].Height) + ExtraCost;
 		}
 	}
 	

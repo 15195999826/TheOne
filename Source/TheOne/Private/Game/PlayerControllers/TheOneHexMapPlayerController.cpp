@@ -388,41 +388,41 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 		EventSystem->OnAbilityCommandErrorTarget.Broadcast();
 		return;
 	}
-	switch (AbilityConfig->TargetType)
+	switch (AbilityConfig->ActiveAbilityData.TargetType)
 	{
 		case ETheOneAbilityReleaseTarget::None:
 			ConsumeActionPoint(ActiveCharacter.Get(), static_cast<float>(Cost));
 			ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(),
 															 Payload, nullptr,
 															 ActiveCharacter->GetActorLocation(),
-															 AbilityConfig->ReleaseDistance);
+															 AbilityConfig->ActiveAbilityData.ReleaseDistance);
 		break;
 		case ETheOneAbilityReleaseTarget::Enemy:
 			HasUseAbilityCommandCache = true;
 			ChangeCursorState(ETheOneCursorState::SelectActor, ETheOneSelectActorType::Enemy,
-			                  AbilityConfig->ReleaseDistance);
+			                  AbilityConfig->ActiveAbilityData.ReleaseDistance);
 			break;
 		case ETheOneAbilityReleaseTarget::Ally:
 			HasUseAbilityCommandCache = true;
 			ChangeCursorState(ETheOneCursorState::SelectActor, ETheOneSelectActorType::Ally,
-			                  AbilityConfig->ReleaseDistance);
+			                  AbilityConfig->ActiveAbilityData.ReleaseDistance);
 			break;
 		case ETheOneAbilityReleaseTarget::AnyActor:
 			HasUseAbilityCommandCache = true;
 		// 改变Cursor样式， 等待玩家点击
 			ChangeCursorState(ETheOneCursorState::SelectActor, ETheOneSelectActorType::Any,
-			                  AbilityConfig->ReleaseDistance);
+			                  AbilityConfig->ActiveAbilityData.ReleaseDistance);
 			break;
 		case ETheOneAbilityReleaseTarget::Grid:
 			HasUseAbilityCommandCache = true;
 			ChangeCursorState(ETheOneCursorState::SelectGround, ETheOneSelectActorType::Any,
-			                  AbilityConfig->ReleaseDistance);
+			                  AbilityConfig->ActiveAbilityData.ReleaseDistance);
 			break;
 	}
 
 	if (HasUseAbilityCommandCache)
 	{
-		ReleaseDistanceCache = AbilityConfig->ReleaseDistance;
+		ReleaseDistanceCache = AbilityConfig->ActiveAbilityData.ReleaseDistance;
 		PayloadCache = Payload;
 		CostCache = static_cast<float>(Cost);
 		ShowReleaseDistanceTips();

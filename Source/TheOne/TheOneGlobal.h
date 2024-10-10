@@ -10,4 +10,5 @@ namespace TheOneGlobal
 	THEONE_API extern const FName LeftJewelryMeshTag;
 	THEONE_API extern const FName RightJewelryMeshTag;
 	
+	
 }

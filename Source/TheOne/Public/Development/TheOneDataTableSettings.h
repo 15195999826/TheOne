@@ -25,9 +25,6 @@ public:
 
 	UPROPERTY(config, EditAnywhere)
 	TSubclassOf<ATheOneAIController> DefaultAIControllerClass;
-	
-	UPROPERTY(config, EditAnywhere)
-	TSubclassOf<UTheOneGameplayAbility> DefaultTableAbility;
 
 	UPROPERTY(config, EditAnywhere, Category = DataTable)
 	TSoftObjectPtr<UDataTable> LevelTable;
