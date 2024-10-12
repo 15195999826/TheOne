@@ -204,16 +204,17 @@ void ATheOneHexMapPlayerController::BP_OnHitGround_Implementation(const FVector&
 		HideAllPathTips();
 		DesiredGoalLocation = FVector(FLT_MAX);
 	}
-	
+
 	if (!IsCommanding && bIsLeftClick && ActiveAI.IsValid())
 	{
 		HideAllPathTips();
+		auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
 		if (HitLocation.Equals(DesiredGoalLocation, 0.1f))
 		{
 			DesiredGoalLocation = FVector(FLT_MAX);
-			auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+
 			auto Height = HexGrid->GetTileHeightByCoord(HexGrid->WorldToHex(CanArriveGoalLocation));
-			
+
 			auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 			EventSystem->UseAbilityCommand.Broadcast(FTheOneUseAbilityCommandPayload(
 				ETheOneUseAbilityCommandType::Move, 0, CanArriveGoalLocation + FVector(0, 0, Height), CurrentCost));
@@ -225,75 +226,24 @@ void ATheOneHexMapPlayerController::BP_OnHitGround_Implementation(const FVector&
 			bool Set = MoveRequest.UpdateGoalLocation(HitLocation);
 			if (!Set)
 			{
-				UE_LOG(LogTheOneAI, Verbose, TEXT("Actor: %s, Set GoalLocation failed"), *ActiveAI->GetPawn()->GetName());
+				UE_LOG(LogTheOneAI, Verbose, TEXT("Actor: %s, Set GoalLocation failed"),
+				       *ActiveAI->GetPawn()->GetName());
 				return;
 			}
-		
-			// start new move request
-			FPathFindingQuery PFQuery;
-			const bool bValidQuery = ActiveAI->BuildPathfindingQuery(MoveRequest, PFQuery);
-			if (!bValidQuery)
-			{
-				UE_LOG(LogTheOneAI, Verbose, TEXT("Actor: %s, bValidQuery is not valid"), *ActiveAI->GetPawn()->GetName());
-				return;
-			}
-			FNavPathSharedPtr FollowedPath;
-			ActiveAI->FindPathForMoveRequest(MoveRequest, PFQuery, FollowedPath);
-			if (FollowedPath.IsValid())
-			{
-				auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
-				auto Path = FollowedPath->GetPathPoints();
-				// 移除第一个点， 这个点时角色当前的位置
-				Path.RemoveAt(0);
-				if (Path.Num() > 0)
-				{
-					// 判断终点能不能走
-					const auto& LastPoint = Path.Last();
-					const auto& LastHex = HexGrid->GetHexTile(LastPoint.Location);
-					if (LastHex.HasActor())
-					{
-						// 移除最后一个点
-						Path.RemoveAt(Path.Num() - 1);
-					}
-				}
-				
-				if (Path.Num() == 0)
-				{
-					DesiredGoalLocation = FVector(FLT_MAX);
-					return;
-				}
-				
-				// 预测移动消耗
-				CurrentCost = 0;
-				float Cost = 0;
-				int CanMoveCount = 0;
-				// 获取当前角色剩余的行动点数
-				auto RemainActionPoint = ActiveCharacter->GetAttributeSet()->GetActionPoint();
-				for (const auto& PathPoint : Path)
-				{
-					const auto& Tile = HexGrid->GetHexTile(PathPoint.Location);
-					Cost += Tile.Cost;
-					if (RemainActionPoint < Cost){
-						break;
-					}
-					CurrentCost += Tile.Cost;
-					CanMoveCount++;
-				}
 
-				if (CanMoveCount > 0)
+			int32 OutCanMoveCount;
+			TArray<FNavPathPoint> OutPath;
+			bool Find = FindPath(ActiveAI.Get(), ActiveCharacter.Get(), HitLocation, DesiredGoalLocation, CurrentCost,
+			                     CanArriveGoalLocation, OutPath, OutCanMoveCount);
+
+			if (Find)
+			{
+				for (int i = 0; i < OutCanMoveCount; i++)
 				{
-					CanArriveGoalLocation = Path[CanMoveCount - 1].Location;
-					for (int i = 0; i < CanMoveCount; i++)
-					{
-						auto Height = HexGrid->GetTileHeightByCoord(HexGrid->WorldToHex(Path[i].Location));
-						auto Tip = GetPathTip();
-						ShowingPathTips.Add(Tip);
-						Tip->SetActorLocation(Path[i].Location+FVector(0,0,Height));
-					}
-				}
-				else
-				{
-					DesiredGoalLocation = FVector(FLT_MAX);
+					auto Height = HexGrid->GetTileHeightByCoord(HexGrid->WorldToHex(OutPath[i].Location));
+					auto Tip = GetPathTip();
+					ShowingPathTips.Add(Tip);
+					Tip->SetActorLocation(OutPath[i].Location + FVector(0, 0, Height));
 				}
 			}
 		}
@@ -335,6 +285,78 @@ void ATheOneHexMapPlayerController::ReleasePathTip(AActor* InTip)
 {
 	InTip->SetActorHiddenInGame(true);
 	PathTipPool.Add(InTip);
+}
+
+bool ATheOneHexMapPlayerController::FindPath(AAIController* InAI, ATheOneCharacterBase* InCharacter,
+                                             const FVector& GoalLocation, FVector& OutDesiredGoalLocation,
+                                             float& OutCost, FVector& OutCanArriveGoalLocation, TArray<FNavPathPoint>& OutPath, int& OutCanMoveCount)
+{
+	bool Set = MoveRequest.UpdateGoalLocation(GoalLocation);
+	if (!Set)
+	{
+		UE_LOG(LogTheOneAI, Verbose, TEXT("Actor: %s, Set GoalLocation failed"), *InAI->GetPawn()->GetName());
+		return false;
+	}
+	// start new move request
+	FPathFindingQuery PFQuery;
+	const bool bValidQuery = InAI->BuildPathfindingQuery(MoveRequest, PFQuery);
+	if (!bValidQuery)
+	{
+		UE_LOG(LogTheOneAI, Verbose, TEXT("Actor: %s, bValidQuery is not valid"), *InAI->GetPawn()->GetName());
+		return false;
+	}
+	FNavPathSharedPtr FollowedPath;
+	InAI->FindPathForMoveRequest(MoveRequest, PFQuery, FollowedPath);
+	if (FollowedPath.IsValid())
+	{
+		auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+		OutPath = FollowedPath->GetPathPoints();
+		// 移除第一个点， 这个点时角色当前的位置
+		OutPath.RemoveAt(0);
+		if (OutPath.Num() > 0)
+		{
+			// 判断终点能不能走
+			const auto& LastPoint = OutPath.Last();
+			const auto& LastHex = HexGrid->GetHexTile(LastPoint.Location);
+			if (LastHex.HasActor())
+			{
+				// 移除最后一个点
+				OutPath.RemoveAt(OutPath.Num() - 1);
+			}
+		}
+				
+		if (OutPath.Num() == 0)
+		{
+			OutDesiredGoalLocation = FVector(FLT_MAX);
+			return false;
+		}
+				
+		// 预测移动消耗
+		OutCost = 0;
+		float Cost = 0;
+		int CanMoveCount = 0;
+		// 获取当前角色剩余的行动点数
+		auto RemainActionPoint = InCharacter->GetAttributeSet()->GetActionPoint();
+		for (const auto& PathPoint : OutPath)
+		{
+			const auto& Tile = HexGrid->GetHexTile(PathPoint.Location);
+			Cost += Tile.Cost;
+			if (RemainActionPoint < Cost){
+				break;
+			}
+			OutCost += Tile.Cost;
+			CanMoveCount++;
+		}
+
+		if (CanMoveCount > 0)
+		{
+			OutCanArriveGoalLocation = OutPath[CanMoveCount - 1].Location;
+			OutCanMoveCount = CanMoveCount;
+			return true;
+		}
+	}
+	OutDesiredGoalLocation = FVector(FLT_MAX);
+	return false;
 }
 
 void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload)
@@ -396,7 +418,7 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 															 Payload, nullptr,
 															 ActiveCharacter->GetActorLocation(),
 															 AbilityConfig->ActiveAbilityData.ReleaseDistance);
-		break;
+			break;
 		case ETheOneAbilityReleaseTarget::Enemy:
 			HasUseAbilityCommandCache = true;
 			ChangeCursorState(ETheOneCursorState::SelectActor, ETheOneSelectActorType::Enemy,
@@ -471,6 +493,7 @@ ATheOneCharacterBase* ATheOneHexMapPlayerController::GetExecCharacter()
 
 void ATheOneHexMapPlayerController::EndActiveCharacterTurn()
 {
+	HideAllPathTips();
 	if (ActiveCharacter.IsValid())
 	{
 		auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();

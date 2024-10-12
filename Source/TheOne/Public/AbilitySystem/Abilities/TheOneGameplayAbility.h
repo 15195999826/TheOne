@@ -121,6 +121,9 @@ struct FTheOneAbilityConfig: public FTableRowBase
 	 */
 	UPROPERTY(EditAnywhere, meta=(EditCondition = "AbilitySource == ETheOneAbilitySource::SpecialBP || AbilitySource == ETheOneAbilitySource::LuaDrive", EditConditionHides))
 	TSubclassOf<UTheOneGameplayAbility> AbilityClass;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, meta=(DisplayName = "评估函数名"))
+	FName EvaluateFunctionName;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSoftObjectPtr<UAnimMontage> AbilityMontage;
@@ -130,6 +133,12 @@ struct FTheOneAbilityConfig: public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "行动点消耗"))
 	int Cost = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "体力消耗"))
+	int EnergyCost = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "冷却"))
+	int CoolDown = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "主动技能配置", EditConditionHides, EditCondition = "AbilityType == ETheOneAbilityType::Active&&AbilitySource == ETheOneAbilitySource::DataTableDrive"))
 	FTheOneActiveAbilityData ActiveAbilityData;

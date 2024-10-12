@@ -6,6 +6,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "TheOneContextSystem.generated.h"
 
+class ATheOneBattleEvaluate;
+class ATheOneBattle;
 class ATheOneCharacterBase;
 class AHexGrid;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameplayEventTriggerOverSignature);
@@ -20,6 +22,12 @@ class THEONE_API UTheOneContextSystem : public UWorldSubsystem
 public:
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<class ATheOneLevelSettingActor> LevelSetting;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<ATheOneBattle> Battle;
+
+	UPROPERTY(BlueprintReadOnly)
+	TObjectPtr<ATheOneBattleEvaluate> BattleEvaluate;
 	
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<AHexGrid> HexGrid;

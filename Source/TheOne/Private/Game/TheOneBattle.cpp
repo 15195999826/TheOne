@@ -5,11 +5,14 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/TheOneAttributeSet.h"
+#include "AbilitySystem/TheOneLifeAttributeSet.h"
+#include "AbilitySystem/Abilities/TheOneGeneralGA.h"
 #include "Actor/TheOneLevelSettingActor.h"
 #include "AI/TheOneAIController.h"
 #include "Game/TheOneEventSystem.h"
 #include "Game/TheOneGameInstance.h"
 #include "Game/TheOneGameModeBase.h"
+#include "Game/Battle/TheOneBattleEvaluate.h"
 #include "Game/PlayerControllers/TheOneHexMapPlayerController.h"
 #include "HexGrid/HexGrid.h"
 #include "HexGrid/HexPathFollowingComponent.h"
@@ -31,6 +34,7 @@ void ATheOneBattle::OnEnterBattle()
 	EventSystem->OnCharacterEndTurn.AddUObject(this, &ATheOneBattle::OnCharacterEndTurn);
 	EventSystem->NativeBeforeCharacterMove.AddDynamic(this, &ATheOneBattle::BeforeCharacterMove);
 	EventSystem->NativeAfterCharacterMove.AddDynamic(this, &ATheOneBattle::AfterCharacterMove);
+	// Todo: 监听单位死亡，更新控制区
 	
 	// 拿到玩家队伍的全部成员
 	auto GameMode = Cast<ATheOneGameModeBase>(UGameplayStatics::GetGameMode(this));
@@ -134,7 +138,7 @@ void ATheOneBattle::BeforeCharacterMove(ATheOneCharacterBase* InCharacter)
 			// 检查当前格子在不在范围内
 			for (const auto& InCoord: Coords)
 			{
-				auto Location = HexGrid->HexToWorld(InCoord);
+				// auto Location = HexGrid->HexToWorld(InCoord);
 				// DrawDebugSphere(GetWorld(), Location, 100, 12, FColor::Red, false, 1.f);
 				if (InCoord == CurrentCoord)
 				{
@@ -181,9 +185,157 @@ void ATheOneBattle::OnBattleStageChanged_Implementation()
 				}
 				
 				auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-				
 				EventSystem->OnCharacterGetTurn.Broadcast(CurrentCharacter);
 				// 等待玩家操作结束回合
+
+				// 如果是敌人，等待AI操作完毕
+				if (IInHexActorInterface::Execute_GetCamp(CurrentCharacter) == ETheOneCamp::Enemy)
+				{
+					TArray<FTheOneAIChoice> PossibleChoices;
+					auto PlayerTeam = GetCharactersByCamp(ETheOneCamp::Player);
+					// 目标选择： 最近的目标， 远程
+					
+					// 遍历所有AI可以执行的行为， 计算得分
+					auto BattleEva = GetWorld()->GetSubsystem<UTheOneContextSystem>()->BattleEvaluate;
+					FTheOneAIChoice EndTurnChoice;
+					EndTurnChoice.Choice = ETheOneAIChoice::EndTurn;
+					EndTurnChoice.Score = BattleEva->NativeEndTurn(CurrentCharacter);
+					PossibleChoices.Add(EndTurnChoice);
+
+					FTheOneAIChoice WaitTurnChoice;
+					WaitTurnChoice.Choice = ETheOneAIChoice::WaitTurn;
+					WaitTurnChoice.Score = BattleEva->NativeWaitTurn(CurrentCharacter);
+					PossibleChoices.Add(WaitTurnChoice);
+					
+					// 目标+得分构成一个选项, 命中仍然通过得分来角色
+					// 需要选择目标的技能，通过这种方式来做
+					// 尽可能优先选择能释放的技能
+				
+					auto Abilities = CurrentCharacter->AbilityCaches;
+					int32 AbilityIndex = 0;
+					for (const auto& Pair : Abilities)
+					{
+						const auto& AbilityCacheArray = Pair.Value;
+						for (const auto& AbilityCache : AbilityCacheArray)
+						{
+							auto AbilityRow = AbilityCache.AbilityGA->GetAbilityRowHandle().GetRow<FTheOneAbilityConfig>("AIEva");
+							if (AbilityRow->AbilityType == ETheOneAbilityType::Active)
+							{
+								// Todo: 如果技能是向地面释放的
+								switch (AbilityRow->ActiveAbilityData.TargetType) {
+									case ETheOneAbilityReleaseTarget::None:
+										break;
+									case ETheOneAbilityReleaseTarget::Enemy:
+										{
+											for (auto PlayerCharacter : PlayerTeam)
+											{
+												if (ITheOneBattleInterface::Execute_IsDead(PlayerCharacter))
+												{
+													continue;
+												}
+												
+												auto Distance = CurrentCharacter->GetDistanceTo(PlayerCharacter);
+												if (Distance <= AbilityRow->ActiveAbilityData.ReleaseDistance)
+												{
+													FTheOneAIChoice Choice;
+													Choice.Choice = ETheOneAIChoice::ReleaseAbility;
+													Choice.TargetCharacter = PlayerCharacter;
+													Choice.TargetLocation = FVector(FLT_MAX);
+													Choice.AbilityIndex = AbilityIndex;
+													Choice.Score = BattleEva->CallEvaFunctionByName(AbilityRow->EvaluateFunctionName,CurrentCharacter, PlayerCharacter, Choice.TargetLocation);
+													PossibleChoices.Add(Choice);
+												}
+											}
+										}
+										break;
+									case ETheOneAbilityReleaseTarget::Ally:
+										break;
+									case ETheOneAbilityReleaseTarget::Grid:
+										break;
+									case ETheOneAbilityReleaseTarget::AnyActor:
+										break;
+								}
+							}
+							AbilityIndex++;
+						}
+					}
+
+					bool InAnyOpponentZOC= false;
+					auto CurrentCoord = CurrentCharacter->GetCurrentHexCoord();;
+					auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+					for (const auto& PlayerCharacter:PlayerTeam)
+					{
+						if (ITheOneBattleInterface::Execute_IsDead(PlayerCharacter))
+						{
+							continue;
+						}
+		
+						const auto& Coord = PlayerCharacter->GetCurrentHexCoord();
+						const auto& Coords = HexGrid->GetRangeCoords(Coord,1,true);
+						// 检查当前格子在不在范围内
+						for (const auto& InCoord: Coords)
+						{
+							// auto Location = HexGrid->HexToWorld(InCoord);
+							// DrawDebugSphere(GetWorld(), Location, 100, 12, FColor::Red, false, 1.f);
+							if (InCoord == CurrentCoord)
+							{
+								// 触发离开控制区事件
+								InAnyOpponentZOC = true;
+								break;
+							}
+						}
+
+						if (InAnyOpponentZOC)
+						{
+							break;
+						}
+					}
+
+					uint32 MinHealthFlag = 0;
+					float MinHealth = FLT_MAX;
+					for (auto PlayerCharacter : PlayerTeam)
+					{
+						auto Health = PlayerCharacter->GetLifeAttributeSet()->GetHealth();
+						if (Health < MinHealth)
+						{
+							MinHealth = Health;
+							MinHealthFlag = PlayerCharacter->GetFlag();
+						}
+					}
+					
+					// 之后考虑两种移动方式
+					for (auto PlayerCharacter : PlayerTeam)
+					{
+						if (ITheOneBattleInterface::Execute_IsDead(PlayerCharacter))
+						{
+							continue;
+						}
+						
+						bool IsMinHealth = PlayerCharacter->GetFlag() == MinHealthFlag;
+						
+						FTheOneAIChoice RashMoveChoice;
+						RashMoveChoice.Choice = ETheOneAIChoice::RashMove;
+						RashMoveChoice.TargetCharacter = PlayerCharacter;
+						RashMoveChoice.Score = BattleEva->NativeRashMove(CurrentCharacter, PlayerCharacter, InAnyOpponentZOC, IsMinHealth,RashMoveChoice.TargetLocation);
+						PossibleChoices.Add(RashMoveChoice);
+						
+						FTheOneAIChoice ConservativeMoveChoice;
+						ConservativeMoveChoice.Choice = ETheOneAIChoice::ConservativeMove;
+						ConservativeMoveChoice.TargetCharacter = PlayerCharacter;
+						ConservativeMoveChoice.Score = BattleEva->NativeConservativeMove(CurrentCharacter, PlayerCharacter, InAnyOpponentZOC, IsMinHealth,ConservativeMoveChoice.TargetLocation);
+						PossibleChoices.Add(ConservativeMoveChoice);
+					}
+
+					check(PossibleChoices.Num() > 0)
+
+					// 确保存在得分 > 0 的选项
+					
+					if (PossibleChoices.Num() > 1)
+					{
+						// 剔除其中得分相对极小的， Todo: 目前使用最大
+						
+					}
+				}
 			}
 			break;
 	}
@@ -295,14 +447,8 @@ void ATheOneBattle::NextRound()
 	BattleContext.SetStage(ETheOneBattleStage::NewRoundPending);
 }
 
-void ATheOneBattle::NextCharacterTurn()
+void ATheOneBattle::UpdateControlTile()
 {
-	BattleContext.CurrentTurn++;
-	if (BattleContext.CurrentTurn >= BattleContext.ActionQueue.Num())
-	{
-		BattleContext.SetStage(ETheOneBattleStage::EnterNewRound);
-		return;
-	}
 	// 更新HexGridTile的寻路消耗, 如果该格子被敌方占据，寻路消耗增加
 	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
 	// 更新所有Tile的控制区为false
@@ -323,6 +469,8 @@ void ATheOneBattle::NextCharacterTurn()
 		{
 			continue;
 		}
+
+		// Todo: 如果手握远程武器，那么无控制区
 		
 		if (IInHexActorInterface::Execute_GetCamp(Pair.Value.Get()) == OppositeCamp)
 		{
@@ -343,15 +491,32 @@ void ATheOneBattle::NextCharacterTurn()
 		}
 	}
 
-	auto ContextSystem = GetWorld()->GetSubsystem<UTheOneContextSystem>();
-	for (int i = 0; i < HexGrid->GridTiles.Num(); i++)
+	auto CurrentCharacter = BattleContext.ActionQueue[BattleContext.CurrentTurn];
+	if (IInHexActorInterface::Execute_GetCamp(CurrentCharacter) == ETheOneCamp::Player)
 	{
-		const auto& Tile = HexGrid->GridTiles[i];
-		if (Tile.bOpponentControl)
+		auto ContextSystem = GetWorld()->GetSubsystem<UTheOneContextSystem>();
+		for (int i = 0; i < HexGrid->GridTiles.Num(); i++)
 		{
-			HexGrid->SetFaceIndicatorColor(i, ContextSystem->LevelSetting->OppnentCampZOCColor, 0.f);
+			const auto& Tile = HexGrid->GridTiles[i];
+			if (Tile.bOpponentControl)
+			{
+				HexGrid->SetFaceIndicatorColor(i, ContextSystem->LevelSetting->OppnentCampZOCColor, 0.f);
+			}
 		}
 	}
+}
+
+void ATheOneBattle::NextCharacterTurn()
+{
+	BattleContext.CurrentTurn++;
+	if (BattleContext.CurrentTurn >= BattleContext.ActionQueue.Num())
+	{
+		BattleContext.SetStage(ETheOneBattleStage::EnterNewRound);
+		return;
+	}
+	
+	UpdateControlTile();
+	
 	
 	BattleContext.SetStage(ETheOneBattleStage::CharacterTurn);
 	// 1. 行动角色， 现实一个箭头UI
@@ -363,4 +528,18 @@ void ATheOneBattle::OnCharacterEndTurn(ATheOneCharacterBase* InCharacter)
 	auto CurrentCharacter = BattleContext.ActionQueue[BattleContext.CurrentTurn];
 	check(CurrentCharacter == InCharacter)
 	CompleteWaitSignal();
+}
+
+TArray<ATheOneCharacterBase*> ATheOneBattle::GetCharactersByCamp(ETheOneCamp InCamp) const
+{
+	TArray<ATheOneCharacterBase*> Characters;
+	for (const auto& Pair:InBattleCharacters)
+	{
+		if (IInHexActorInterface::Execute_GetCamp(Pair.Value.Get()) == InCamp)
+		{
+			Characters.Add(Pair.Value.Get());
+		}
+	}
+
+	return Characters;
 }

@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "TheOneMainGameProgressComponent.generated.h"
 
+class ATheOneBattleEvaluate;
 class ATheOneBattle;
 
 UENUM(BlueprintType)
@@ -31,9 +32,12 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<ATheOneBattle> BattleLogicClass;
-	
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<ATheOneBattleEvaluate> BattleEvaluateClass;
+
 	UPROPERTY()
-	TObjectPtr<ATheOneBattle> Battle;
+	TWeakObjectPtr<ATheOneBattle> WeakBattle;
 	
 	// Called when the game starts
 	virtual void BeginPlay() override;

@@ -122,21 +122,6 @@ UTheOneGeneralGA* ATheOneCharacterBase::DoAbility_Implementation(ETheOneUseAbili
 				ToReleaseAbilitySpecHandle = AbilityCache->AbilitySpecHandle;
 				RetGA = AbilityCache->AbilityGA.Get();
 			}
-			// if (InIntPayload == 1)
-			// {
-			// 	ToReleaseAbilitySpecHandle = WeaponAbilityASpecHandle;
-			// 	RetGA = WeakWeaponAbilityA.Get();
-			// }
-			// else if (InIntPayload == 2)
-			// {
-			// 	ToReleaseAbilitySpecHandle = WeaponAbilityBSpecHandle;
-			// 	RetGA = WeakWeaponAbilityB.Get();
-			// }
-			// else if (InIntPayload == 3)
-			// {
-			// 	ToReleaseAbilitySpecHandle = WeaponAbilityCSpecHandle;
-			// 	RetGA = WeakWeaponAbilityC.Get();
-			// }
 			break;
 	}
 	

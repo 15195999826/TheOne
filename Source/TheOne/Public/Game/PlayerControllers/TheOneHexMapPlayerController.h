@@ -33,7 +33,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsPlayInEditor() const { return bPlayInEditor; }
-	
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -85,6 +85,10 @@ protected:
 	AActor* GetPathTip();
 	void ReleasePathTip(AActor* InTip);
 
+public:
+	bool FindPath(AAIController* InAI, ATheOneCharacterBase* InCharacter,
+											 const FVector& GoalLocation, FVector& OutDesiredGoalLocation,
+											 float& OutCost, FVector& OutCanArriveGoalLocation, TArray<FNavPathPoint>& OutPath, int& OutCanMoveCount);
 	// For UseAbilityCommand
 protected:
 	virtual void ReceiveUseAbilityCommand(const FTheOneUseAbilityCommandPayload& Payload) override;
