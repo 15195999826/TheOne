@@ -71,6 +71,7 @@ private:
 
 	// For PathFinding
 protected:
+	bool CanPlayerControl = false;
 	bool IsCommanding = false;
 	FVector DesiredGoalLocation;
 	FVector CanArriveGoalLocation;

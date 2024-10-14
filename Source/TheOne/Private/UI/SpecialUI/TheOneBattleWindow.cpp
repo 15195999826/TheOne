@@ -18,7 +18,7 @@ void UTheOneBattleWindow::OnActive_Implementation()
 	// ITheOneShorcutInterface::Execute_BindShortcutKey(CharacterPanel->AbilitySlotA);
 	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 	EventSystem->OnCharacterGetTurn.AddUObject(this, &UTheOneBattleWindow::OnCharacterGetTurn);
-	EventSystem->OnCharacterEndTurn.AddUObject(this, &UTheOneBattleWindow::OnCharacterEndTurn);
+	EventSystem->OnCharacterEndTurn.AddDynamic(this, &UTheOneBattleWindow::OnCharacterEndTurn);
 }
 
 void UTheOneBattleWindow::OnDeActive_Implementation()
@@ -30,11 +30,20 @@ void UTheOneBattleWindow::OnDeActive_Implementation()
 void UTheOneBattleWindow::OnCharacterGetTurn(ATheOneCharacterBase* InCharacter)
 {
 	CharacterPanel->Bind(InCharacter);
-	AbilityPanel->Bind(InCharacter);
+	if (IInHexActorInterface::Execute_GetCamp(InCharacter) == ETheOneCamp::Player)
+	{
+		TempEndTurn->SetVisibility(ESlateVisibility::Visible);
+		AbilityPanel->Bind(InCharacter);
+	}
+	else
+	{
+		TempEndTurn->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 void UTheOneBattleWindow::OnCharacterEndTurn(ATheOneCharacterBase* InCharacter)
 {
 	CharacterPanel->UnBind();
 	AbilityPanel->UnBind();
+	TempEndTurn->SetVisibility(ESlateVisibility::Hidden);
 }

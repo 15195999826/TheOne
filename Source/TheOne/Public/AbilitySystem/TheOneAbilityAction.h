@@ -248,7 +248,9 @@ struct FTheOneAbilityAction
 	
 	UPROPERTY()
 	TMap<FString, FTheOneAbilityActionData> ForBindActionParam;
-
+	
+	static float RequireActionMathExpression(const FString& MathExpression, const AActor* ActionExecutor, const AActor* TargetActor,
+										 const FActiveGameplayEffect* InSourceGE = nullptr);
 	
 	void DoAction(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector, int Level, UTheOneGameplayAbility* FromAbility = nullptr, FActiveGameplayEffect* ActionSourceGE = nullptr, bool DrawDebug = false);
 private:
@@ -264,8 +266,7 @@ private:
 
 	TArray<AActor*> GetTargets(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector, UTheOneGameplayAbility* FromAbility, bool DrawDebug);
 
-	static float RequireActionMathExpression(const FString& MathExpression, const AActor* ActionExecutor, const AActor* TargetActor,
-										 const FActiveGameplayEffect* InSourceGE = nullptr);
+
 };
 
 USTRUCT(BlueprintType)

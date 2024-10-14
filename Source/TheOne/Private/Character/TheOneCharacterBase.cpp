@@ -9,6 +9,7 @@
 #include "AbilitySystem/TheOneAttributeSet.h"
 #include "AbilitySystem/TheOneLifeAttributeSet.h"
 #include "AbilitySystem/Abilities/TheOneGameplayAbility.h"
+#include "AbilitySystem/Abilities/TheOneGeneralGA.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/TheOneCharacterMovementComponent.h"
 #include "Components/WidgetComponent.h"
@@ -54,6 +55,24 @@ const FTheOneCharacterConfig& ATheOneCharacterBase::GetConfig() const
 	return EmptyConfig;
 }
 
+float ATheOneCharacterBase::GetAbilityMinCost()
+{
+	float MinCost = FLT_MAX;
+	for (const auto& AbilityCache : AbilityCaches)
+	{
+		for (const auto& AbilityData : AbilityCache.Value)
+		{
+			auto Config = AbilityData.AbilityGA->GetConfig();
+			if (Config->AbilityType == ETheOneAbilityType::Active && Config->Cost < MinCost)
+			{
+				MinCost = Config->Cost;
+			}
+		}
+	}
+
+	return MinCost;
+}
+
 const FTheOneAbilityCache* ATheOneCharacterBase::GetAbilityCacheByIntPayload(int32 InIntPayload)
 {
 	int Count = 0;
@@ -76,7 +95,7 @@ void ATheOneCharacterBase::BeforeEnterBattle()
 {
 	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
 	EventSystem->OnCharacterGetTurn.AddUObject(this, &ATheOneCharacterBase::OnGetTurn);
-	EventSystem->OnCharacterEndTurn.AddUObject(this, &ATheOneCharacterBase::OnEndTurn);
+	EventSystem->OnCharacterEndTurn.AddDynamic(this, &ATheOneCharacterBase::OnEndTurn);
 }
 
 void ATheOneCharacterBase::AfterEndBattle()
@@ -182,6 +201,9 @@ void ATheOneCharacterBase::Die()
 
 	OnceOnDead.Broadcast();
 	OnceOnDead.Clear();
+
+	auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
+	EventSystem->OnCharacterDead.Broadcast(this);
 }
 
 void ATheOneCharacterBase::OnSelected()

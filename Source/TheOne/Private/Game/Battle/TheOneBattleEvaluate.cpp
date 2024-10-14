@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "AbilitySystem/TheOneAttributeSet.h"
 #include "AbilitySystem/TheOneLifeAttributeSet.h"
+#include "AbilitySystem/Abilities/TheOneGeneralGA.h"
 #include "Character/TheOneCharacterBase.h"
 #include "Game/TheOneBattle.h"
 #include "Game/PlayerControllers/TheOneHexMapPlayerController.h"
@@ -28,7 +29,7 @@ void ATheOneBattleEvaluate::BeginPlay()
 	
 }
 
-double ATheOneBattleEvaluate::CallEvaFunctionByName(const FName& InFunctionName,ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, const FVector& InTargetLocation)
+double ATheOneBattleEvaluate::CallEvaFunctionByName(const FName& InFunctionName, const FTheOneEvaParams& InParams)
 {
 	float Result = 0.0f;
 	auto Fuc = this->FindFunction(InFunctionName);
@@ -36,16 +37,12 @@ double ATheOneBattleEvaluate::CallEvaFunctionByName(const FName& InFunctionName,
 	{
 		struct FMyBlueprintFunctionParams
 		{
-			ATheOneCharacterBase* Self;
-			ATheOneCharacterBase* Target;
-			FVector TargetLocation;
+			FTheOneEvaParams Params;
 			double ReturnValue;
 		};
 
 		FMyBlueprintFunctionParams Params;
-		Params.Self = InSelf;
-		Params.Target = InTarget;
-		Params.TargetLocation = InTargetLocation;
+		Params.Params = InParams;
 		this->ProcessEvent(Fuc, &Params);
 		UE_LOG(LogTemp, Warning, TEXT("ATheOneBattleEvaluate::CallEvaFunctionByName %s, ReturnValue %f"), *InFunctionName.ToString(), Params.ReturnValue);
 
@@ -113,7 +110,7 @@ double ATheOneBattleEvaluate::NativeWaitTurn(ATheOneCharacterBase* InSelf)
 	return -1;
 }
 
-double ATheOneBattleEvaluate::NativeRashMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, bool TargetIsOppTeamMinHealth, FVector& OutTargetLocation)
+double ATheOneBattleEvaluate::NativeRashMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, int HealthSortIndex, FVector& OutTargetLocation)
 {
 	// 如果处于某个敌对单位的控制区， 那么得分极低
 	double Result = 0.0f;
@@ -163,38 +160,42 @@ double ATheOneBattleEvaluate::NativeRashMove(ATheOneCharacterBase* InSelf, ATheO
 	FVector OutCanArriveLocation;
 	int32 OutCanMoveCount;
 	TArray<FNavPathPoint> OutPath;
-	PC->FindPath(Cast<AAIController>(InSelf->GetController()), InSelf, HexGrid->SnapToGrid(OutTargetLocation),
+	bool Find = PC->FindPath(Cast<AAIController>(InSelf->GetController()), InSelf, HexGrid->SnapToGrid(OutTargetLocation),
 	             OutDesiredLocation, OutCost, OutCanArriveLocation, OutPath, OutCanMoveCount);
 
-	auto CurrentActionPoint = InSelf->GetAttributeSet()->GetActionPoint();
-	// Todo: 这里可以写的更聪明， 要大于进攻性质的最小的技能的消耗
-	if (CurrentActionPoint - OutCost > 2)
+	if (Find)
 	{
-		Result += 2.0f;
-	}
-	
-	// 如果目标的血量低，那么额外得分
-	if (InTarget->GetLifeAttributeSet()->GetHealth() < 30.f)
-	{
-		Result += 2.0f;
-	}
-	
-	// 如果有队友在目标控制区内，那么额外得分
-	if (HasAnyTeamateInTargetZOC(InSelf, InTarget))
-	{
-		Result += 2.0f;
-	}
+		auto CurrentActionPoint = InSelf->GetAttributeSet()->GetActionPoint();
+		// GetAbilityMinCost
+		auto MinCost = InSelf->GetAbilityMinCost();
+		// Todo: 这里可以写的更聪明， 要大于进攻性质的最小的技能的消耗
+		if (CurrentActionPoint - OutCost >= MinCost)
+		{
+			Result += 10.0f;
+			// 如果目标的血量低，那么额外得分
+			if (InTarget->GetLifeAttributeSet()->GetHealth() < 30.f)
+			{
+				Result += 2.0f;
+			}
 
-	if (TargetIsOppTeamMinHealth)
-	{
-		Result += 2.0f;
+			// 如果有队友在目标控制区内，那么额外得分
+			if (HasAnyTeammateInTargetZOC(InSelf, InTarget))
+			{
+				Result += 2.0f;
+			}
+			// 血量越低，HealthSortIndex越大，得分越高
+			Result += static_cast<double>(HealthSortIndex);
+		}
 	}
-
+	else
+	{
+		Result = -1.0f;
+	}
 	
 	return Result;
 }
 
-double ATheOneBattleEvaluate::NativeConservativeMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, bool TargetIsOppTeamMinHealth, FVector& OutTargetLocation)
+double ATheOneBattleEvaluate::NativeConservativeMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, int HealthSortIndex, FVector& OutTargetLocation)
 {
 	// 如果处于某个敌对单位的控制区， 那么得分极低
 	double Result = 0.0f;
@@ -202,6 +203,18 @@ double ATheOneBattleEvaluate::NativeConservativeMove(ATheOneCharacterBase* InSel
 	{
 		Result = -10.0f;
 	}
+	auto TheOneBattle = GetWorld()->GetSubsystem<UTheOneContextSystem>()->Battle;
+	const auto& SelfMemory = TheOneBattle->GetChessMemory(InSelf);
+	// 如果上次行动是保守移动，那么不会再次执行
+	if (SelfMemory.Num() > 0)
+	{
+		if (SelfMemory.Last().Choice == ETheOneAIChoice::ConservativeMove)
+		{
+			Result = -1.0f;
+		}
+		return Result;
+	}
+	
 	// 没有好的攻击机会的情况下，移动到最靠近敌人并且非控制区的格子
 	// 直接向InTarget寻路， 剔除控制区的格子, 并且处理Cost
 	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
@@ -241,31 +254,69 @@ double ATheOneBattleEvaluate::NativeConservativeMove(ATheOneCharacterBase* InSel
 		{
 			Result += 5.0f;
 			OutTargetLocation = OutPath[FinalMoveCount - 1].Location;
+			// 在目标敌人没有发生交战的情况下，得分较高
+			if (!HasAnyTeammateInTargetZOC(InSelf, InTarget))
+			{
+				Result += 2.0f;
+			}
+
+			// 目标血量最低时，倾向增加
+			Result += static_cast<double>(HealthSortIndex);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("不知明的检测错误"));
-			Result += 2.0f;
+			UE_LOG(LogTemp, Warning, TEXT("无安全移动范围, FinalMoveCount %d, OutPath.Num() %d, OutCost: %f"), FinalMoveCount, OutPath.Num(), OutCost);
 			OutTargetLocation = OutCanArriveLocation;
+			Result = -1.f;
 		}
+	}
+	else
+	{
+		Result = -1.0f;
+	}
+	
+	return Result;
+}
 
-		// 在目标敌人没有发生交战的情况下，得分较高
-		if (!HasAnyTeamateInTargetZOC(InSelf, InTarget))
-		{
-			Result += 2.0f;
-		}
+double ATheOneBattleEvaluate::GeneralSingleMelee(const FTheOneEvaParams& InParams)
+{
+	const FTheOneAbilityCache* AbilityCache = InParams.Self->GetAbilityCacheByIntPayload(InParams.AbilityIndex);
+	if(!AbilityCache)
+	{
+		return -1.f;
+	}
 
-		// 目标血量最低时，倾向增加
-		if (TargetIsOppTeamMinHealth)
+	// 首先检查能不能把释放
+	auto AbilityConfig = AbilityCache->AbilityGA->GetAbilityRowHandle().GetRow<FTheOneAbilityConfig>("GeneralSingleMelee");
+	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+	bool InRange = HexGrid->InRangeByVector(InParams.Self->GetActorLocation(), InParams.Target->GetActorLocation(), AbilityConfig->ActiveAbilityData.ReleaseDistance);
+	bool ActionPointEnough = InParams.Self->GetAttributeSet()->GetActionPoint() >= AbilityConfig->Cost;
+	if (!InRange || !ActionPointEnough)
+	{
+		return -1.f;
+	}
+
+	double Result = 0.0f;
+
+	Result += static_cast<double>(InParams.HealthSortIndex);
+
+	// 预计能否打死对方
+	if (AbilityCache->AbilityGA->Implements<UTheOneAbilityEvaInterface>())
+	{
+		float Damage = 0.0f;
+		bool MaybeDead = false;
+		ITheOneAbilityEvaInterface::Execute_PredictDamage(AbilityCache->AbilityGA.Get(), InParams.Target, Damage, MaybeDead);
+		Result += Damage;
+		if (MaybeDead)
 		{
-			Result += 2.0f;
+			Result += 10.0f;
 		}
 	}
 	
 	return Result;
 }
 
-bool ATheOneBattleEvaluate::HasAnyTeamateInTargetZOC(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget)
+bool ATheOneBattleEvaluate::HasAnyTeammateInTargetZOC(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget)
 {
 	auto ContextSystem = GetWorld()->GetSubsystem<UTheOneContextSystem>();
 	auto Battle = ContextSystem->Battle;

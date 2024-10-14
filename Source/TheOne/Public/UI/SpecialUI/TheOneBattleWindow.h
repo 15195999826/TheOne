@@ -34,8 +34,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTheOneAbilityPanel> AbilityPanel;
 
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UUserWidget> TempEndTurn;
 private:
 	void OnCharacterGetTurn(ATheOneCharacterBase* InCharacter);
+	UFUNCTION()
 	void OnCharacterEndTurn(ATheOneCharacterBase* InCharacter);
 	
 };

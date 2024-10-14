@@ -637,12 +637,18 @@ TArray<FHexTile> AHexGrid::GetRange(const FHCubeCoord& Center, int32 Radius)
 	return Result;
 }
 
+bool AHexGrid::InRangeByVector(const FVector& Center, const FVector& Target, int32 Radius)
+{
+	const auto& CenterHex = WorldToHex(Center);
+	const auto& TargetHex = WorldToHex(Target);
+	return InRange(CenterHex, TargetHex, Radius);
+}
+
 
 bool AHexGrid::InRange(const FHCubeCoord& Center, const FHCubeCoord& Target, int32 Radius)
 {
-	return FMath::Abs(Center.QRS.X - Target.QRS.X) <= Radius &&
-		FMath::Abs(Center.QRS.Y - Target.QRS.Y) <= Radius &&
-		FMath::Abs(Center.QRS.Z - Target.QRS.Z) <= Radius;
+	auto Distance = GetDistance(Center, Target);
+	return Distance <= Radius;
 }
 
 bool AHexGrid::IsTileReachable(const FVector& Location)

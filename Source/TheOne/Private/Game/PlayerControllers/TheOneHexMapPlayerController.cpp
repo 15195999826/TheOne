@@ -15,6 +15,14 @@
 
 void ATheOneHexMapPlayerController::OnCharacterGetTurn(ATheOneCharacterBase* InCharacter)
 {
+	if (IInHexActorInterface::Execute_GetCamp(InCharacter) == ETheOneCamp::Player)
+	{
+		CanPlayerControl = true;
+	}
+	else
+	{
+		CanPlayerControl = false;
+	}
 	IsCommanding = false;
 	DesiredGoalLocation = FVector(FLT_MAX);
 	ActiveCharacter = InCharacter;
@@ -199,6 +207,11 @@ void ATheOneHexMapPlayerController::HideAllPathTips()
 void ATheOneHexMapPlayerController::BP_OnHitGround_Implementation(const FVector& HitLocation, bool bIsRightClick,
                                                                   bool bIsLeftClick, bool CanWalk)
 {
+	if (!CanPlayerControl)
+	{
+		return;
+	}
+	
 	if (bIsRightClick)
 	{
 		HideAllPathTips();
@@ -216,8 +229,9 @@ void ATheOneHexMapPlayerController::BP_OnHitGround_Implementation(const FVector&
 			auto Height = HexGrid->GetTileHeightByCoord(HexGrid->WorldToHex(CanArriveGoalLocation));
 
 			auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-			EventSystem->UseAbilityCommand.Broadcast(FTheOneUseAbilityCommandPayload(
-				ETheOneUseAbilityCommandType::Move, 0, CanArriveGoalLocation + FVector(0, 0, Height), CurrentCost));
+			auto Payload = FTheOneUseAbilityCommandPayload(
+				ETheOneUseAbilityCommandType::Move, 0, CanArriveGoalLocation + FVector(0, 0, Height), CurrentCost);
+			EventSystem->UseAbilityCommand.Broadcast(Payload);
 		}
 		else
 		{
@@ -370,6 +384,7 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 	}
 	
 	IsCommanding = true;
+	
 	HideAllPathTips();
 	
 	FTheOneAbilityConfig* AbilityConfig = nullptr;
@@ -380,8 +395,34 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 		case ETheOneUseAbilityCommandType::Move:
 			{
 				// 消耗行动点数
-				ConsumeActionPoint(ActiveCharacter.Get(), Payload.FloatPayload);
-				ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(), Payload, nullptr, Payload.VectorPayload, 0);
+				if (!CanPlayerControl)
+				{
+					// 寻找实际寻路路径和消耗
+					int32 OutCanMoveCount;
+					TArray<FNavPathPoint> OutPath;
+					bool Find = FindPath(ActiveAI.Get(), ActiveCharacter.Get(), Payload.VectorPayload, DesiredGoalLocation, CurrentCost,
+										 CanArriveGoalLocation, OutPath, OutCanMoveCount);
+
+					if (!Find)
+					{
+						UE_LOG(LogTheOneAI, Error, TEXT("AI寻找了错误的终点: %s"), *Payload.VectorPayload.ToString());
+						DrawDebugSphere(GetWorld(), Payload.VectorPayload, 50, 10, FColor::Red, false, 999);
+						return;
+					}
+					
+					auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
+					auto Height = HexGrid->GetTileHeightByCoord(HexGrid->WorldToHex(CanArriveGoalLocation));
+					ConsumeActionPoint(ActiveCharacter.Get(), CurrentCost);
+					FTheOneUseAbilityCommandPayload NewPayload = Payload;
+					NewPayload.FloatPayload = CurrentCost;
+					NewPayload.VectorPayload = CanArriveGoalLocation + FVector(0, 0, Height);
+					ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(), NewPayload, nullptr, NewPayload.VectorPayload, 0);
+				}
+				else
+				{
+					ConsumeActionPoint(ActiveCharacter.Get(), Payload.FloatPayload);
+					ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(), Payload, nullptr, Payload.VectorPayload, 0);
+				}
 				return;
 			}
 		case ETheOneUseAbilityCommandType::UseItem:
@@ -391,6 +432,16 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 				auto Ability = ActiveCharacter->GetAbilityCacheByIntPayload(Payload.IntPayload);
 				check(Ability);
 				AbilityConfig = Ability->AbilityGA->GetAbilityRowHandle().GetRow<FTheOneAbilityConfig>("ReceiveUseAbilityCommand");
+			}
+			break;
+		case ETheOneUseAbilityCommandType::EndTurn:
+			{
+				ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(), Payload, nullptr, Payload.VectorPayload, 0);
+				return;
+			}
+		case ETheOneUseAbilityCommandType::WaitTurn:
+			{
+				// Todo:
 			}
 			break;
 		default:
@@ -420,9 +471,19 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 															 AbilityConfig->ActiveAbilityData.ReleaseDistance);
 			break;
 		case ETheOneAbilityReleaseTarget::Enemy:
-			HasUseAbilityCommandCache = true;
-			ChangeCursorState(ETheOneCursorState::SelectActor, ETheOneSelectActorType::Enemy,
-			                  AbilityConfig->ActiveAbilityData.ReleaseDistance);
+			if (CanPlayerControl)
+			{
+				HasUseAbilityCommandCache = true;
+				ChangeCursorState(ETheOneCursorState::SelectActor, ETheOneSelectActorType::Enemy,
+								  AbilityConfig->ActiveAbilityData.ReleaseDistance);
+			}
+			else
+			{
+				ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(),
+															 Payload, Payload.ActorPayload,
+															 Payload.ActorPayload->GetActorLocation(),
+															 AbilityConfig->ActiveAbilityData.ReleaseDistance);
+			}
 			break;
 		case ETheOneAbilityReleaseTarget::Ally:
 			HasUseAbilityCommandCache = true;
@@ -473,10 +534,7 @@ bool ATheOneHexMapPlayerController::InReleaseDistance(const FVector& SourceLocat
 	int InReleaseDistance)
 {
 	auto HexGrid = GetWorld()->GetSubsystem<UTheOneContextSystem>()->HexGrid;
-	auto SourceCoord = HexGrid->WorldToHex(SourceLocation);
-	auto TargetCoord = HexGrid->WorldToHex(TargetLocation);
-	auto Distance = HexGrid->GetDistance(SourceCoord, TargetCoord);
-	return Distance <= InReleaseDistance;
+	return HexGrid->InRangeByVector(SourceLocation, TargetLocation, InReleaseDistance);
 }
 
 void ATheOneHexMapPlayerController::ConsumeActionPoint(ATheOneCharacterBase* InCharacter, float InCost)
@@ -494,12 +552,7 @@ ATheOneCharacterBase* ATheOneHexMapPlayerController::GetExecCharacter()
 void ATheOneHexMapPlayerController::EndActiveCharacterTurn()
 {
 	HideAllPathTips();
-	if (ActiveCharacter.IsValid())
-	{
-		auto EventSystem = GetWorld()->GetSubsystem<UTheOneEventSystem>();
-		EventSystem->OnCharacterEndTurn.Broadcast(ActiveCharacter.Get());
-	}
-	else
+	if (!ActiveCharacter.IsValid())
 	{
 		UE_LOG(LogTheOne, Error, TEXT("ActiveCharacter is not valid"));
 	}

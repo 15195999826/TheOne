@@ -201,12 +201,13 @@ public:
 		Camp = InCamp;
 		BP_OnSetCamp(InCamp);
 	}
-
 	
 	void SetSkillState(ETheOneCharacterSkillState InSkillState)
 	{
 		SkillState = InSkillState;
 	}
+
+	float GetAbilityMinCost();
 
 	const FTheOneAbilityCache* GetAbilityCacheByIntPayload(int32 InIntPayload);
 	
@@ -236,5 +237,6 @@ protected:
 	
 private:
 	void OnGetTurn(ATheOneCharacterBase* InCharacter);
+	UFUNCTION()
 	void OnEndTurn(ATheOneCharacterBase* InCharacter);
 };

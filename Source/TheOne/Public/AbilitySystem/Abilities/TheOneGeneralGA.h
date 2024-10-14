@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/Abilities/TheOneGameplayAbility.h"
+#include "Interface/TheOneAbilityEvaInterface.h"
 #include "TheOneGeneralGA.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class THEONE_API UTheOneGeneralGA : public UTheOneGameplayAbility
+class THEONE_API UTheOneGeneralGA : public UTheOneGameplayAbility, public ITheOneAbilityEvaInterface
 {
 	GENERATED_BODY()
 
@@ -27,7 +28,13 @@ public:
 	ETheOneAbilityReleaseTarget GetTargetType() const;
 
 	const FDataTableRowHandle& GetAbilityRowHandle() const { return AbilityRow; }
+	const FTheOneAbilityConfig* GetConfig();
+
 protected:
 	UFUNCTION(BlueprintCallable)
 	void DoAction(FGameplayTag InActionPoint);
+
+	// For Evaluate
+public:
+	virtual void PredictDamage_Implementation(AActor* Target, float& OutDamage, bool& OutMaybeDead) override;
 };

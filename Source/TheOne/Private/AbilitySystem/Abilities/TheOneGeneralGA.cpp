@@ -3,8 +3,10 @@
 
 #include "AbilitySystem/Abilities/TheOneGeneralGA.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "TheOneBlueprintFunctionLibrary.h"
 #include "TheOneLogChannels.h"
+#include "AbilitySystem/TheOneLifeAttributeSet.h"
 
 void UTheOneGeneralGA::SetUpGeneralAbility(const FDataTableRowHandle& InRow, const FTheOneAbilityConfig* InAbilityConfig, int InLevel)
 {
@@ -25,6 +27,11 @@ ETheOneAbilityReleaseTarget UTheOneGeneralGA::GetTargetType() const
 	}
 	UE_LOG(LogTheOne, Error, TEXT("AbilityConfig is nullptr"));
 	return ETheOneAbilityReleaseTarget::Enemy;
+}
+
+const FTheOneAbilityConfig* UTheOneGeneralGA::GetConfig()
+{
+	return AbilityRow.GetRow<FTheOneAbilityConfig>("GetConfig");
 }
 
 void UTheOneGeneralGA::DoAction(FGameplayTag InActionPoint)
@@ -50,5 +57,43 @@ void UTheOneGeneralGA::DoAction(FGameplayTag InActionPoint)
 				}
 			}
 		}
+	}
+}
+
+void UTheOneGeneralGA::PredictDamage_Implementation(AActor* Target, float& OutDamage, bool& OutMaybeDead)
+{
+	float TotalDamage = 0;
+	
+	for (auto& ActionPoint : ActionPoints)
+	{
+		for (FTheOneAbilityActionContainer& ActionContainer : ActionPoint.Actions)
+		{
+			for (FTheOneAbilityAction& Action : ActionContainer.Actions)
+			{
+				// 进行预测
+				if (Action.ActionData.ActionType == ETheOneAbilityActionType::Damage)
+				{
+					FString Expression = "0";
+					if (Action.ActionData.Expressions.Num() > 0)
+					{
+						Expression = Action.ActionData.Expressions[FMath::Clamp(Level - 1, 0, Action.ActionData.Expressions.Num() - 1)];
+					}
+					TotalDamage += FTheOneAbilityAction::RequireActionMathExpression(Expression, GetAvatarActorFromActorInfo(), Target);
+					// Todo: 暴击概率等属性应用
+				}
+			}
+		}
+	}
+
+	OutDamage = TotalDamage;
+	bool Find = false;
+	auto CurrentHealth = UAbilitySystemBlueprintLibrary::GetFloatAttribute(Target, UTheOneLifeAttributeSet::GetHealthAttribute(), Find);
+	if (Find)
+	{
+		OutMaybeDead = TotalDamage >= CurrentHealth;
+	}
+	else
+	{
+		OutMaybeDead = false;
 	}
 }

@@ -55,7 +55,8 @@ public:
 	FOnTheOneOneIntParamDelegate OnSelectInBagCharacter;
 
 	FOnSelectCharacterDelegate OnCharacterGetTurn;
-	FOnSelectCharacterDelegate OnCharacterEndTurn;
+	UPROPERTY(BlueprintCallable)
+	FOnTheOneCharacterSignature OnCharacterEndTurn;
 
 	// For Battle Start
 	FOnTheOneOneIntParamDelegate OnRoundBegin;
@@ -67,4 +68,6 @@ public:
 	FOnTheOneCharacterSignature NativeBeforeCharacterMove;
 	UPROPERTY(BlueprintCallable)
 	FOnTheOneCharacterSignature NativeAfterCharacterMove;
+	UPROPERTY(BlueprintAssignable)
+	FOnTheOneCharacterSignature OnCharacterDead;
 };

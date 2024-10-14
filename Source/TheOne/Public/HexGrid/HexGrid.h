@@ -332,6 +332,9 @@ public:
 	TArray<FHexTile> GetRange(const FHCubeCoord& Center, int32 Radius);
 
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
+	bool InRangeByVector(const FVector& Center, const FVector& Target, int32 Radius);
+	
+	UFUNCTION(BlueprintCallable, Category = "HexGrid")
 	bool InRange(const FHCubeCoord& Center, const FHCubeCoord& Target, int32 Radius);
 
 	UFUNCTION(BlueprintCallable, Category = "HexGrid")
@@ -353,6 +356,7 @@ public:
 	void SetFaceIndicatorColor(int Index, const FLinearColor& InColor, float NewHeightOffset = 0.f);
 	
 	FHCubeCoord GetHexCoordByXY(int32 Row, int32 Column) const;
+	
 protected:
 
 	// Called when the game starts or when spawned

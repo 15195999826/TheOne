@@ -10,6 +10,8 @@ enum class ETheOneUseAbilityCommandType : uint8
 	UseItem,
 	UseAbility,
 	Move,
+	EndTurn,
+	WaitTurn
 };
 
 USTRUCT(BlueprintType)
@@ -19,25 +21,28 @@ struct FTheOneUseAbilityCommandPayload
 
 	FTheOneUseAbilityCommandPayload()
 		: CommandType(), IntPayload(0)
-		  , VectorPayload(FVector::ZeroVector), FloatPayload(0)
+		  , VectorPayload(FVector::ZeroVector), FloatPayload(0), ActorPayload(nullptr)
 	{
 	}
 
 	FTheOneUseAbilityCommandPayload(ETheOneUseAbilityCommandType InCommandType, int32 InIntPayload, const FVector& InVectorPayload, float InFloatPayload)
 		: CommandType(InCommandType), IntPayload(InIntPayload)
-		  , VectorPayload(InVectorPayload), FloatPayload(InFloatPayload)
+		  , VectorPayload(InVectorPayload), FloatPayload(InFloatPayload), ActorPayload(nullptr)
 	{
 	}
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	ETheOneUseAbilityCommandType CommandType;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 IntPayload;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FVector VectorPayload;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float FloatPayload;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TObjectPtr<AActor> ActorPayload;
 };

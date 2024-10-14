@@ -4,12 +4,30 @@
 
 #include "CoreMinimal.h"
 #include "TheOneBattleEvaluate.generated.h"
-
 class ATheOneCharacterBase;
 class ATheOneBattle;
 
+USTRUCT(BlueprintType)
+struct FTheOneEvaParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	ATheOneCharacterBase* Self;
+	UPROPERTY(BlueprintReadOnly)
+	ATheOneCharacterBase* Target;
+	UPROPERTY(BlueprintReadOnly)
+	FVector TargetLocation;
+	UPROPERTY(BlueprintReadOnly)
+	bool SelfInAnyOpponentZOC;
+	UPROPERTY(BlueprintReadOnly)
+	int HealthSortIndex;
+	UPROPERTY(BlueprintReadOnly)
+	int32 AbilityIndex;
+};
+
 /**
- * 
+ * Todo: 根据Memory, 与记忆中相同目标的行为，额外得分
  */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class THEONE_API ATheOneBattleEvaluate : public AActor
@@ -25,15 +43,21 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	double CallEvaFunctionByName(const FName& InFunctionName, ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, const FVector& InTargetLocation);
+	double CallEvaFunctionByName(const FName& InFunctionName, const FTheOneEvaParams& InParams);
 
 	double NativeEndTurn(ATheOneCharacterBase* InSelf);
 	double NativeWaitTurn(ATheOneCharacterBase* InSelf);
-	double NativeRashMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, bool TargetIsOppTeamMinHealth, FVector& OutTargetLocation);
-	double NativeConservativeMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, bool TargetIsOppTeamMinHealth,FVector& OutTargetLocation);
+	double NativeRashMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, int HealthSortIndex, FVector& OutTargetLocation);
+	double NativeConservativeMove(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget, bool InAnyOpponentZOC, int HealthSortIndex,FVector& OutTargetLocation);
+
+	/**
+	 * 通用伤害型技能评估
+	 */
+	UFUNCTION(BlueprintCallable)
+	double GeneralSingleMelee(const FTheOneEvaParams& InParams);
 
 protected:
-	bool HasAnyTeamateInTargetZOC(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget);
+	bool HasAnyTeammateInTargetZOC(ATheOneCharacterBase* InSelf, ATheOneCharacterBase* InTarget);
 	
 	// float Get2OpponentAbilityMinCost(ATheOneCharacterBase* InSelf);
 };
