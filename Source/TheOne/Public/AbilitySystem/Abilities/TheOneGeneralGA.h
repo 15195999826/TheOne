@@ -15,6 +15,8 @@ class THEONE_API UTheOneGeneralGA : public UTheOneGameplayAbility, public ITheOn
 {
 	GENERATED_BODY()
 
+	inline static FRandomStream PredictRandomStream{};
+	
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	FDataTableRowHandle AbilityRow;

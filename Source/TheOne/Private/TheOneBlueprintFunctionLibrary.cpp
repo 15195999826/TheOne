@@ -387,16 +387,14 @@ FGameplayTag UTheOneBlueprintFunctionLibrary::CastToDamageTypeTag(ETheOneDamageT
 {
 	switch (InDamageType)
 	{
-		case ETheOneDamageType::Physical:
-			return TheOneGameplayTags::SetByCaller_Damage_Physical;
-		case ETheOneDamageType::Magical:
-			return TheOneGameplayTags::SetByCaller_Damage_Magical;
-		case ETheOneDamageType::Real:
-			return TheOneGameplayTags::SetByCaller_Damage_Real;
+		case ETheOneDamageType::Melee:
+			return TheOneGameplayTags::SetByCaller_Damage_Melee;
+		case ETheOneDamageType::Range:
+			return TheOneGameplayTags::SetByCaller_Damage_Range;
 	}
 
 	UE_LOG(LogTheOne, Error, TEXT("CastToDamageTypeTag Fail: %d, 设置成了物理攻击"), InDamageType);
-	return TheOneGameplayTags::SetByCaller_Damage_Physical;
+	return TheOneGameplayTags::SetByCaller_Damage_Melee;
 }
 
 FName UTheOneBlueprintFunctionLibrary::ProjectileFlyTypeToName(ETheOneProjectileFlyType InFlyType)

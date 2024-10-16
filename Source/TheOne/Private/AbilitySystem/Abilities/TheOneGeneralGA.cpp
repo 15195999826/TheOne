@@ -78,7 +78,7 @@ void UTheOneGeneralGA::PredictDamage_Implementation(AActor* Target, float& OutDa
 					{
 						Expression = Action.ActionData.Expressions[FMath::Clamp(Level - 1, 0, Action.ActionData.Expressions.Num() - 1)];
 					}
-					TotalDamage += FTheOneAbilityAction::RequireActionMathExpression(Expression, GetAvatarActorFromActorInfo(), Target);
+					TotalDamage += FTheOneAbilityAction::RequireActionMathExpression(Expression, GetAvatarActorFromActorInfo(), Target, PredictRandomStream);
 					// Todo: 暴击概率等属性应用
 				}
 			}

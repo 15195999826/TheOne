@@ -12,9 +12,11 @@
 #include "Actor/TheOneProjectileActor.h"
 #include "Character/TheOneCharacterBase.h"
 #include "Development/TheOneGeneralSettings.h"
+#include "Game/TheOneBattle.h"
+#include "Subsystems/TheOneContextSystem.h"
 
 void FTheOneAbilityAction::DoAction(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector,
-	int Level, UTheOneGameplayAbility* FromAbility, FActiveGameplayEffect* ActionSourceGE, bool DrawDebug)
+                                    int Level, UTheOneGameplayAbility* FromAbility, FActiveGameplayEffect* ActionSourceGE, bool DrawDebug)
 {
 	// Todo: 保证ActionExecutor拥有ActionSourceGE
 	// Todo: Caster 可以为投射物等， 通过接口可以获取真正的施法者
@@ -36,15 +38,20 @@ void FTheOneAbilityAction::DoAction(AActor* ActionExecutor, const FTheOneAbility
 				}
 
 				FString Expression = "0";
+				
 				if (ActionData.Expressions.Num() > 0)
 				{
 					Expression = ActionData.Expressions[FMath::Clamp(Level - 1, 0, ActionData.Expressions.Num() - 1)];
 				}
+				// 是否完全等于ATK
+				bool IsUseATK = Expression.Equals("ATK");
+				// Todo: 可以根据配置决定伤害攻击的位置
 
+				auto ContextSystem = SourceActor->GetWorld()->GetSubsystem<UTheOneContextSystem>();
 				for (auto Target : Targets)
 				{
-					auto Damage = RequireActionMathExpression(Expression, SourceActor, Target, ActionSourceGE);
-					DoActionDamageInternal(SourceActor, Target, Damage, FromAbility);
+					auto Damage = RequireActionMathExpression(Expression, SourceActor, Target, ContextSystem->Battle->GetRandomStream(), ActionSourceGE);
+					DoActionDamageInternal(SourceActor, Target, Damage, FromAbility, IsUseATK);
 				}
 			}
 			break;
@@ -116,7 +123,7 @@ void FTheOneAbilityAction::DoAction(AActor* ActionExecutor, const FTheOneAbility
 }
 
 void FTheOneAbilityAction::DoActionDamageInternal(AActor* SourceActor, AActor* TargetActor, float InDamage,
-	const UTheOneGameplayAbility* FromAbility) const
+	const UTheOneGameplayAbility* FromAbility, bool IsUseATK) const
 {
 	const auto SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(SourceActor);
 	const auto TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
@@ -131,6 +138,34 @@ void FTheOneAbilityAction::DoActionDamageInternal(AActor* SourceActor, AActor* T
 	EffectContext.AddSourceObject(SourceActor);
 	const auto SpecHandle = SourceASC->MakeOutgoingSpec(GetDefault<UTheOneGeneralSettings>()->DamageEffect, 1, EffectContext);
 	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, ActionData.DamageTag, InDamage);
+	// Add Attack Position Dynamic Tag
+	FGameplayTag AttackPositionTag;
+	if (!ActionData.DamagePositionTag.IsValid())
+	{
+		// 随机一个位置
+		auto RandomStream = SourceActor->GetWorld()->GetSubsystem<UTheOneContextSystem>()->Battle->GetRandomStream();
+		auto RandomValue = RandomStream.FRand();
+		if (RandomValue < 0.5f)
+		{
+			AttackPositionTag = TheOneGameplayTags::SetByCaller_DamagePosition_Body;
+		}
+		else
+		{
+			AttackPositionTag = TheOneGameplayTags::SetByCaller_DamagePosition_Head;
+		}
+	}
+	else
+	{
+		AttackPositionTag = ActionData.DamagePositionTag;
+	}
+
+	SpecHandle.Data.Get()->AddDynamicAssetTag(AttackPositionTag);
+
+	// Todo: 增加Tag， 是否正在使用ATK计算伤害， 是的话才使用公式
+	if (IsUseATK)
+	{
+		SpecHandle.Data.Get()->AddDynamicAssetTag(TheOneGameplayTags::CalcByATK);
+	}
 
 	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
@@ -216,13 +251,15 @@ TArray<AActor*> FTheOneAbilityAction::GetTargets(AActor* ActionExecutor,
 }
 
 float FTheOneAbilityAction::RequireActionMathExpression(const FString& MathExpression,
-	const AActor* ActionExecutor, const AActor* TargetActor, const FActiveGameplayEffect* InSourceGE)
+	const AActor* ActionExecutor, const AActor* TargetActor, const FRandomStream& RandomStream, const FActiveGameplayEffect* InSourceGE)
 {
 	FBasicMathExpressionEvaluator Evaluator;
 	FString Expression = MathExpression; // copy
 
 	bool GetATK = false;
-	auto ATK = UAbilitySystemBlueprintLibrary::GetFloatAttribute(ActionExecutor, UTheOneAttributeSet::GetAttackAttribute(),GetATK);
+	auto MinATK = UAbilitySystemBlueprintLibrary::GetFloatAttribute(ActionExecutor, UTheOneAttributeSet::GetMinAttackAttribute(),GetATK);
+	auto MaxATK = UAbilitySystemBlueprintLibrary::GetFloatAttribute(ActionExecutor, UTheOneAttributeSet::GetMaxAttackAttribute(), GetATK);
+	auto RDATK = RandomStream.FRandRange(MinATK, MaxATK);
 
 	bool GetMaxHP = false;
 	auto MaxHealth = UAbilitySystemBlueprintLibrary::GetFloatAttribute(TargetActor, UTheOneLifeAttributeSet::GetMaxHealthAttribute(), GetMaxHP);
@@ -238,7 +275,7 @@ float FTheOneAbilityAction::RequireActionMathExpression(const FString& MathExpre
 	}
 	
 	Expression = Expression.Replace(TEXT("MaxHP"), *FString::Printf(TEXT("%f"), MaxHealth));
-	Expression = Expression.Replace(TEXT("ATK"), *FString::Printf(TEXT("%f"), ATK));
+	Expression = Expression.Replace(TEXT("ATK"), *FString::Printf(TEXT("%f"), RDATK));
 	Expression = Expression.Replace(TEXT("BuffStack"), *FString::Printf(TEXT("%d"), StackCount));
  
 	TValueOrError<double, FExpressionError> Result = Evaluator.Evaluate(Expression.GetCharArray().GetData());

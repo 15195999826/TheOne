@@ -111,6 +111,29 @@ void ATheOneBattle::OnEnterBattle()
 	TeamMoveToBattleArea(PlayerTeam, FRotator(0, 0, 0), PlayerStartRow, PlayerStartCol, GameMode, HexGrid, TeamSystem);
 	TeamMoveToBattleArea(EnemyTeam, FRotator(0, 180, 0), EnemyStartRow, EnemyStartCol, GameMode, HexGrid, TeamSystem);
 
+	// Todo: 临时给与所有人20点头部护甲和20点身体护甲, 
+	for (const auto& Pair:InBattleCharacters)
+	{
+		auto Character = Pair.Value.Get();
+		auto LifeAttributeSet = Character->GetLifeAttributeSet();
+		LifeAttributeSet->SetMaxHeadArmor(20.f);
+		LifeAttributeSet->SetHeadArmor(20.f);
+		LifeAttributeSet->SetMaxBodyArmor(20.f);
+		LifeAttributeSet->SetBodyArmor(20.f);
+		auto Attribute = Character->GetAttributeSet();
+		// 20~25随机最小攻击力， 25~30随机最大攻击力
+		Attribute->SetMinAttack(FMath::RandRange(20.f, 25.f));
+		Attribute->SetMaxAttack(FMath::RandRange(25.f, 30.f));
+		Attribute->SetMaxEnergy(100.f);
+		Attribute->SetEnergy(100.f);
+		// 从0~100随机赋予MeleeLevel、RangedLevel、MeleeDefense、RangedDefense、DamageArmorEfficiency、DamagePenetrationEfficiency
+		Attribute->SetMeleeLevel(FMath::RandRange(0, 100));
+		Attribute->SetRangedLevel(FMath::RandRange(0, 100));
+		Attribute->SetMeleeDefense(FMath::RandRange(0, 100));
+		Attribute->SetRangedDefense(FMath::RandRange(0, 100));
+		Attribute->SetDamageArmorEfficiency(FMath::RandRange(0.f, 1.f));
+		Attribute->SetDamagePenetrationEfficiency(FMath::RandRange(0.f, 1.f));
+	}
 
 	BattleContext.SetStage(ETheOneBattleStage::EnterNewRound);
 }
@@ -789,4 +812,9 @@ TArray<ATheOneCharacterBase*> ATheOneBattle::GetCharactersByCamp(ETheOneCamp InC
 const TArray<FTheOneAIChoice>& ATheOneBattle::GetChessMemory(ATheOneCharacterBase* InSelf)
 {
 	return BattleContext.ChessContextMap[InSelf->GetFlag()].Memory;
+}
+
+const FRandomStream& ATheOneBattle::GetRandomStream() const
+{
+	return BattleContext.RandomStream;
 }

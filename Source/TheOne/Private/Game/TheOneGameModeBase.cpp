@@ -375,7 +375,6 @@ ATheOneAIController* ATheOneGameModeBase::SpawnOneAIInternal(TSubclassOf<ATheOne
 					bool ActiveDataDrivePassive =  ASC->TryActivateAbility(GAHandle);
 					check(ActiveDataDrivePassive);
 					
-					
 					auto CharacterAbilities = MinionTemplate->Ability.AbilityRows;
 					for (const auto& RowName : CharacterAbilities)
 					{

@@ -62,6 +62,14 @@ public:
 	 * 隐藏属性
 	 */
 	UPROPERTY(BlueprintReadOnly, Category="Meta Attributes")
-	FGameplayAttributeData IncomingDamage;
-	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, IncomingDamage);
+	FGameplayAttributeData HeadIncomingDamage;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, HeadIncomingDamage);
+
+	UPROPERTY(BlueprintReadOnly, Category="Meta Attributes")
+	FGameplayAttributeData BodyIncomingDamage;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, BodyIncomingDamage);
+
+	UPROPERTY(BlueprintReadOnly, Category="Meta Attributes")
+	FGameplayAttributeData InComingDamage;
+	ATTRIBUTE_ACCESSORS(UTheOneLifeAttributeSet, InComingDamage);
 };

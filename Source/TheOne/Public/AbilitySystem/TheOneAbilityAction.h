@@ -213,6 +213,10 @@ struct FTheOneAbilityActionData
 	UPROPERTY()
 	TArray<FString> Expressions;
 
+	// Todo: 尚未赋值过
+	UPROPERTY()
+	FGameplayTag DamagePositionTag;
+	
 	UPROPERTY()
 	FGameplayTag DamageTag;
 
@@ -248,9 +252,11 @@ struct FTheOneAbilityAction
 	
 	UPROPERTY()
 	TMap<FString, FTheOneAbilityActionData> ForBindActionParam;
-	
-	static float RequireActionMathExpression(const FString& MathExpression, const AActor* ActionExecutor, const AActor* TargetActor,
-										 const FActiveGameplayEffect* InSourceGE = nullptr);
+
+	static float RequireActionMathExpression(const FString& MathExpression, const AActor* ActionExecutor,
+	                                         const AActor* TargetActor,
+	                                         const FRandomStream& RandomStream,
+	                                         const FActiveGameplayEffect* InSourceGE = nullptr);
 	
 	void DoAction(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector, int Level, UTheOneGameplayAbility* FromAbility = nullptr, FActiveGameplayEffect* ActionSourceGE = nullptr, bool DrawDebug = false);
 private:
@@ -261,7 +267,7 @@ private:
 	 * @param InDamage 伤害值
 	 * @param FromAbility 伤害来源的技能
 	 */
-	void DoActionDamageInternal(AActor* SourceActor, AActor* TargetActor,float InDamage, const UTheOneGameplayAbility* FromAbility) const;
+	void DoActionDamageInternal(AActor* SourceActor, AActor* TargetActor,float InDamage, const UTheOneGameplayAbility* FromAbility, bool IsUseATK = false) const;
 
 
 	TArray<AActor*> GetTargets(AActor* ActionExecutor, const FTheOneAbilityTargetSelector& InTargetSelector, UTheOneGameplayAbility* FromAbility, bool DrawDebug);

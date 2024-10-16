@@ -87,7 +87,7 @@ public:
 	TWeakObjectPtr<UTheOneDataDrivePassiveGA> DataDrivePassiveGA;
 	
 protected:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 	
 	UPROPERTY()

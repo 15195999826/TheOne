@@ -18,7 +18,6 @@ UCLASS()
 class THEONE_API ATheOneBattle : public AActor
 {
 	GENERATED_BODY()
-
 	
 public:
 	static ETheOneCamp GetOppositeCamp(ATheOneCharacterBase* Character);
@@ -29,6 +28,8 @@ public:
 
 	TArray<ATheOneCharacterBase*> GetCharactersByCamp(ETheOneCamp InCamp) const;
 	const TArray<FTheOneAIChoice>& GetChessMemory(ATheOneCharacterBase* InSelf);
+
+	const FRandomStream& GetRandomStream() const;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

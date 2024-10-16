@@ -23,4 +23,15 @@ public:
 	{
 		return { TheOneGameplayTags::Debug_GE.GetTag().ToString() };
 	}
+
+	UFUNCTION()
+	static TArray<FName> GetAttributeTagValues()
+	{
+		TArray<FName> Result;
+		for (const FGameplayTag& Tag : TheOneGameplayTags::WeaponModAttributes)
+		{
+			Result.Add(Tag.GetTagName());
+		}
+		return Result;
+	}
 };

@@ -86,8 +86,12 @@ public:
 	 * 基础属性， 模板 + 等级修正 + GE修正
 	 */
 	UPROPERTY(BlueprintReadOnly, Category = "Vital Attribute")
-	FGameplayAttributeData Attack;
-	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, Attack);
+	FGameplayAttributeData MinAttack;
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MinAttack);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Vital Attribute")
+	FGameplayAttributeData MaxAttack;
+	ATTRIBUTE_ACCESSORS(UTheOneAttributeSet, MaxAttack);
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Vital Attribute")
 	FGameplayAttributeData AttackRange;

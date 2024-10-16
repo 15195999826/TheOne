@@ -94,6 +94,10 @@ struct FTheOneBattleContext
 	{
 	}
 
+
+	UPROPERTY(BlueprintReadOnly)
+	FRandomStream RandomStream;
+	
 	UPROPERTY(BlueprintReadWrite)
 	bool WantToGameOver = false;
 	UPROPERTY(BlueprintReadWrite)

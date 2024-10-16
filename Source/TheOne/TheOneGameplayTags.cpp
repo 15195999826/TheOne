@@ -10,12 +10,15 @@
 #define LOCTEXT_NAMESPACE "TheOneGameplayTags"
 namespace TheOneGameplayTags
 {
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(CalcByATK, "CalcByATK", "The attribute is calculated by the ATK attribute.");
+	
 	// Vital Attribute Tags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxHealth, "SetByCaller.Attribute.Vital.MaxHealth", "The maximum health of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxMana, "SetByCaller.Attribute.Vital.MaxMana", "The maximum mana of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_HealthRegen, "SetByCaller.Attribute.Vital.HealthRegen", "The health regeneration of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_ManaRegen, "SetByCaller.Attribute.Vital.ManaRegen", "The mana regeneration of an entity.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Attack, "SetByCaller.Attribute.Vital.Attack", "The attack power of an entity.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MinAttack, "SetByCaller.Attribute.Vital.MinAttack", "The MinAttack power of an entity.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxAttack, "SetByCaller.Attribute.Vital.MaxAttack", "The MaxAttack power of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_AttackRange, "SetByCaller.Attribute.Vital.AttackRange", "The attack range of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_AttackSpeed, "SetByCaller.Attribute.Vital.AttackSpeed", "The attack speed of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Armor, "SetByCaller.Attribute.Vital.Armor", "The armor of an entity.");
@@ -75,18 +78,12 @@ namespace TheOneGameplayTags
 	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Attack, "SetByCaller.Attribute.Runtime.Attack", "The current attack power of an entity.");
 	
-	const TArray<FGameplayTag> VitalAttributes = {
-		SetByCaller_Attribute_Vital_MaxHealth,
-		SetByCaller_Attribute_Vital_MaxMana,
-		SetByCaller_Attribute_Vital_HealthRegen,
-		SetByCaller_Attribute_Vital_ManaRegen,
-		SetByCaller_Attribute_Vital_Attack,
-		SetByCaller_Attribute_Vital_AttackRange,
-		SetByCaller_Attribute_Vital_AttackSpeed,
-		SetByCaller_Attribute_Vital_Armor,
-		SetByCaller_Attribute_Vital_MagicResistance,
-		SetByCaller_Attribute_Vital_MoveSpeed,
-		SetByCaller_Attribute_Vital_TurnSpeed
+	const TArray<FGameplayTag> WeaponModAttributes = {
+		SetByCaller_Attribute_Vital_MinAttack,
+		SetByCaller_Attribute_Vital_MaxAttack,
+		SetByCaller_Attribute_Vital_ArmorEfficiency,
+		SetByCaller_Attribute_Vital_PenetrationEfficiency
+		// Todo: 额外爆头率， 破盾伤害， 射程
 	};
 
 	const TArray<FGameplayTag> RuntimeAttributes = {
@@ -122,21 +119,24 @@ namespace TheOneGameplayTags
 	
 
 	const TMap<FGameplayTag, TFunction<FGameplayAttribute()>> Tag2Attribute = {
-		{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxHealth, [](){return UTheOneLifeAttributeSet::GetMaxHealthAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_Health, [](){return UTheOneLifeAttributeSet::GetHealthAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_MaxHeadArmor,[](){return UTheOneLifeAttributeSet::GetMaxHeadArmorAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_HeadArmor, [](){return UTheOneLifeAttributeSet::GetHeadArmorAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_MaxBodyArmor, [](){return UTheOneLifeAttributeSet::GetMaxBodyArmorAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_BodyArmor, [](){return UTheOneLifeAttributeSet::GetBodyArmorAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxActionPoint,[](){return UTheOneAttributeSet::GetMaxActionPointAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_ActionPoint, [](){return UTheOneAttributeSet::GetActionPointAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Vital_MaxEnergy, [](){return UTheOneAttributeSet::GetMaxEnergyAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Runtime_Energy, [](){return UTheOneAttributeSet::GetEnergyAttribute();}},
-		{TheOneGameplayTags::SetByCaller_Attribute_Vital_Speed, [](){return UTheOneAttributeSet::GetSpeedAttribute();}},
+		{SetByCaller_Attribute_Vital_MaxHealth, [](){return UTheOneLifeAttributeSet::GetMaxHealthAttribute();}},
+		{SetByCaller_Attribute_Runtime_Health, [](){return UTheOneLifeAttributeSet::GetHealthAttribute();}},
+		{SetByCaller_Attribute_Runtime_MaxHeadArmor,[](){return UTheOneLifeAttributeSet::GetMaxHeadArmorAttribute();}},
+		{SetByCaller_Attribute_Runtime_HeadArmor, [](){return UTheOneLifeAttributeSet::GetHeadArmorAttribute();}},
+		{SetByCaller_Attribute_Runtime_MaxBodyArmor, [](){return UTheOneLifeAttributeSet::GetMaxBodyArmorAttribute();}},
+		{SetByCaller_Attribute_Runtime_BodyArmor, [](){return UTheOneLifeAttributeSet::GetBodyArmorAttribute();}},
+		{SetByCaller_Attribute_Vital_MaxActionPoint,[](){return UTheOneAttributeSet::GetMaxActionPointAttribute();}},
+		{SetByCaller_Attribute_Runtime_ActionPoint, [](){return UTheOneAttributeSet::GetActionPointAttribute();}},
+		{SetByCaller_Attribute_Vital_MaxEnergy, [](){return UTheOneAttributeSet::GetMaxEnergyAttribute();}},
+		{SetByCaller_Attribute_Runtime_Energy, [](){return UTheOneAttributeSet::GetEnergyAttribute();}},
+		{SetByCaller_Attribute_Vital_Speed, [](){return UTheOneAttributeSet::GetSpeedAttribute();}},
 	};
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Physical, "SetByCaller.Damage.Physical", "SetByCaller tag used by physical damage gameplay effects.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Magical, "SetByCaller.Damage.Magical", "SetByCaller tag used by magical damage gameplay effects.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Real, "SetByCaller.Damage.Real", "SetByCaller tag used by real damage gameplay effects.");
+	
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_DamagePosition_Head, "SetByCaller.DamagePosition.Head", "SetByCaller tag used by head damage gameplay effects.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_DamagePosition_Body, "SetByCaller.DamagePosition.Body", "SetByCaller tag used by body damage gameplay effects.");
+	
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Melee, "SetByCaller.Damage.Melee", "SetByCaller tag used by physical damage gameplay effects.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Range, "SetByCaller.Damage.Range", "SetByCaller tag used by magical damage gameplay effects.");
 	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ActionPoint0, "Ability.ActionPoint0", "Action Point 0");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ActionPoint1, "Ability.ActionPoint1", "Action Point 1");

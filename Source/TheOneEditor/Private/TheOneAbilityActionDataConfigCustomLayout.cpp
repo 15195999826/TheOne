@@ -237,9 +237,8 @@ FReply FTheOneAbilityActionDataConfigCustomLayout::SelectData()
 	TArray<FName> PossibleValues;
 	if (CacheSelectedKeyHandle.IsEqual(FTheOneAbilityActionDataConfig::DamageTagKey) )
 	{
-		PossibleValues.Add(TheOneGameplayTags::SetByCaller_Damage_Physical.GetTag().GetTagName());
-		PossibleValues.Add(TheOneGameplayTags::SetByCaller_Damage_Magical.GetTag().GetTagName());
-		PossibleValues.Add(TheOneGameplayTags::SetByCaller_Damage_Real.GetTag().GetTagName());
+		PossibleValues.Add(TheOneGameplayTags::SetByCaller_Damage_Melee.GetTag().GetTagName());
+		PossibleValues.Add(TheOneGameplayTags::SetByCaller_Damage_Range.GetTag().GetTagName());
 	}
 	else if (CacheSelectedKeyHandle.IsEqual(FTheOneAbilityActionDataConfig::ProjectileRowNameKey))
 	{

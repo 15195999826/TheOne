@@ -16,9 +16,8 @@ enum class ETheOneAttackCapability : uint8
 UENUM(BlueprintType)
 enum class ETheOneDamageType : uint8
 {
-	Physical UMETA(DisplayName="物理"),
-	Magical UMETA(DisplayName="魔法"),
-	Real UMETA(DisplayName="真实")
+	Melee UMETA(DisplayName="近战"),
+	Range UMETA(DisplayName="远程"),
 };
 
 USTRUCT(BlueprintType)
