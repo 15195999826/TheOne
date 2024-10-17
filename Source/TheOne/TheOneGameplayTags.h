@@ -14,7 +14,8 @@ namespace TheOneGameplayTags
 	THEONE_API extern const TMap<FGameplayTag, FText> Attributes2Text;
 	THEONE_API extern const TMap<FGameplayTag, TFunction<FGameplayAttribute()>> Tag2Attribute;
 
-	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(CalcByATK);
+	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage_Calc_ByATK);
+	
 
 	// Vital Attribute Tags
 	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Attribute_Vital_MaxHealth);
@@ -81,6 +82,8 @@ namespace TheOneGameplayTags
 	// Damage Tags
 	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage_Melee);
 	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage_Range);
+
+	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage_SurrondExtra);
 
 	// ActionPoints
 	THEONE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_ActionPoint0);

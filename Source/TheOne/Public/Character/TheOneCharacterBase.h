@@ -134,6 +134,8 @@ public:
 	 * @return
 	 */
 	virtual UTheOneGeneralGA* DoAbility_Implementation(ETheOneUseAbilityCommandType InUseAbilityCommandType, int32 InIntPayload, AActor* InTargetActor, const FVector& InLocation, ETheOneTryActiveResult& Result) override;
+
+	virtual ETheOneWeaponType GetWeaponType_Implementation() const override;
 	virtual bool IsDead_Implementation() const override;
 	virtual bool IsStun_Implementation() const override;
 

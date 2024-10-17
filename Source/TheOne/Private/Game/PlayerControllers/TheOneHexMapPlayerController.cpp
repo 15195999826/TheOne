@@ -479,6 +479,8 @@ void ATheOneHexMapPlayerController::ReceiveUseAbilityCommand(const FTheOneUseAbi
 			}
 			else
 			{
+				// 计算消耗
+				ConsumeActionPoint(ActiveCharacter.Get(), static_cast<float>(Cost));
 				ITheOneAICommandInterface::Execute_CommitAbility(ActiveAI.Get(),
 															 Payload, Payload.ActorPayload,
 															 Payload.ActorPayload->GetActorLocation(),

@@ -123,7 +123,7 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	const auto SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	const auto TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
 	FGameplayTagContainer Container = Spec.GetDynamicAssetTags();
-	bool IsCalcByATK = Container.HasTagExact(TheOneGameplayTags::CalcByATK);
+	bool IsCalcByATK = Container.HasTagExact(TheOneGameplayTags::Damage_Calc_ByATK);
 
 	// 结算上下文
 	auto EffectContextHandle = Spec.GetContext();
@@ -176,12 +176,16 @@ void UExecCalc_Damage::Execute_Implementation(const FGameplayEffectCustomExecuti
 	// 获取伤害
 	float OriginMeleeDamage = Spec.GetSetByCallerMagnitude(TheOneGameplayTags::SetByCaller_Damage_Melee, false, 0.f);
 	float OriginRangeDamage = Spec.GetSetByCallerMagnitude(TheOneGameplayTags::SetByCaller_Damage_Range, false,0.f);
+	// 被包围时的近战水平加成
+	float SurroundExtra = Spec.GetSetByCallerMagnitude(TheOneGameplayTags::SetByCaller_Damage_SurrondExtra, false, 0.f);
 	// 战斗技巧调整
 	// 当MeleeDT > 0.85f时， MeleeAdjust = 0.85f, 否则MeleeAdjust = MeleeDT
 	// 当MeleeDT < -0.85f时， MeleeAdjust = -0.85f, 否则MeleeAdjust = MeleeDT
-	float MeleeAdjust = FMath::Clamp(1.f+ (MeleeLevel - TargetMeleeDefense) / 100.f, 0.15f, 1.85f);
+	float MeleeAdjust = FMath::Clamp(1.f+ (MeleeLevel + SurroundExtra - TargetMeleeDefense) / 100.f, 0.15f, 1.85f);
 	float RangeAdjust = FMath::Clamp(1.f+ (RangeLevel - TargetRangeDefense) / 100.f, 0.15f, 1.85f);
-	UE_LOG(LogTheOneDamage, Verbose, TEXT("ExecCalc_Damage Original OriginMeleeDamage: %f, OriginRangeDamage: %f, MeleeAdjust: %f, RangeAdjust: %f"), OriginMeleeDamage, OriginRangeDamage, MeleeAdjust, RangeAdjust);
+	UE_LOG(LogTheOneDamage, Verbose, TEXT(
+		"ExecCalc_Damage Original OriginMeleeDamage: %f, OriginRangeDamage: %f, 近战包围加成: %f, 近战技巧加成: %f, 远程技巧调整: %f"),
+		OriginMeleeDamage, OriginRangeDamage, SurroundExtra, MeleeAdjust, RangeAdjust);
 	float MeleeDamage = OriginMeleeDamage * MeleeAdjust;
 	float RangeDamage = OriginRangeDamage * RangeAdjust;
 	

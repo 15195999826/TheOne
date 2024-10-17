@@ -159,4 +159,30 @@ public:
 	static void ShowImportantUI(const UObject* WorldContextObject, ETheOneImportantUI InUI);
 	UFUNCTION(BlueprintCallable, Category="TheOne|UI", meta=(WorldContext="WorldContextObject"))
 	static void CloseImportantUI(const UObject* WorldContextObject, ETheOneImportantUI InUI);
+
+	// For Battle
+public:
+	// 被包围， 返回包围我的敌人数量
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="TheOne|Battle")
+	static int GetSurroundingEnemyCount(AActor* InActor);
+
+	// Random
+	template <typename RangeType>
+	static void RandomShuffle(RangeType& Range, const FRandomStream& RandomStream)
+	{
+		auto Data = GetData(Range);
+
+		using SizeType = decltype(GetNum(Range));
+		const SizeType Num = GetNum(Range);
+
+		for (SizeType Index = 0; Index < Num - 1; ++Index)
+		{
+			// Get a random integer in [Index, Num)
+			const SizeType RandomIndex = Index + (SizeType)RandomStream.RandHelper(Num - Index);
+			if (RandomIndex != Index)
+			{
+				Swap(Data[Index], Data[RandomIndex]);
+			}
+		}
+	}
 };

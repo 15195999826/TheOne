@@ -158,6 +158,23 @@ UTheOneGeneralGA* ATheOneCharacterBase::DoAbility_Implementation(ETheOneUseAbili
 	return RetGA;
 }
 
+ETheOneWeaponType ATheOneCharacterBase::GetWeaponType_Implementation() const
+{
+	if (MainHandItemID != INDEX_NONE)
+	{
+		auto ItemSystem = GetWorld()->GetSubsystem<UTheOneItemSystem>();
+		const auto ItemInstance = ItemSystem->FindItem(MainHandItemID);
+		check(ItemInstance);
+		const auto ItemConfig = GetDefault<UTheOneDataTableSettings>()->EquipmentTable.LoadSynchronous()->FindRow<
+			FTheOneEquipmentConfig>(ItemInstance->ItemRowName, "ATheOneCharacterBase::GetWeaponType_Implementation");
+		return ItemConfig->WeaponType;
+	}
+
+	const auto ItemConfig = GetDefault<UTheOneDataTableSettings>()->EquipmentTable.LoadSynchronous()->FindRow<
+		FTheOneEquipmentConfig>(DefaultWeaponRow, "ATheOneCharacterBase::GetWeaponType_Implementation");
+	return ItemConfig->WeaponType;
+}
+
 bool ATheOneCharacterBase::IsDead_Implementation() const
 {
 	return AbilitySystemComponent->HasMatchingGameplayTag(TheOneGameplayTags::Status_Death);

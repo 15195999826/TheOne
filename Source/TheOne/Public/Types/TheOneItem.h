@@ -27,6 +27,15 @@ enum class ETheOnePropType : uint8
 	Consumable,
 };
 
+UENUM(BlueprintType)
+enum class ETheOneWeaponType : uint8
+{
+	OneHandMelee,
+	TwoHandMelee,
+	OneHandRange,
+	TwoHandRange,
+};
+
 USTRUCT(BlueprintType)
 struct FTheOneAbilityRow
 {
@@ -74,7 +83,7 @@ struct FTheOneEquipmentConfig : public FTheOneItemBase
 {
 	GENERATED_BODY()
 
-	FTheOneEquipmentConfig(): PropType(), bTwoHanded(false)
+	FTheOneEquipmentConfig(): PropType(), WeaponType()
 	{
 	}
 
@@ -82,7 +91,7 @@ struct FTheOneEquipmentConfig : public FTheOneItemBase
 	ETheOnePropType PropType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	bool bTwoHanded;
+	ETheOneWeaponType WeaponType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<FTheOneAttrModifier> AttrModifiers;

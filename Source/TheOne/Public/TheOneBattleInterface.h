@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Types/TheOneItem.h"
 #include "Types/TheOneUseAbilityCommandType.h"
 #include "UObject/Interface.h"
 #include "TheOneBattleInterface.generated.h"
@@ -39,6 +40,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, meta=(ExpandEnumAsExecs = "Result"))
 	class UTheOneGeneralGA* DoAbility(ETheOneUseAbilityCommandType InUseAbilityCommandType, int32 InIntPayload, AActor* InTargetActor, const FVector& InLocation, ETheOneTryActiveResult& Result);
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	ETheOneWeaponType GetWeaponType() const;
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	bool IsDead() const;

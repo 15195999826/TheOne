@@ -21,6 +21,7 @@
 #include "Game/TheOneGameInstance.h"
 #include "Game/TheOneGameModeBase.h"
 #include "Game/PlayerControllers/TheOneHexMapPlayerController.h"
+#include "HexGrid/HexGrid.h"
 #include "Interface/TheOneCharacterABPInterface.h"
 #include "Item/TheOneItemSystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -292,7 +293,7 @@ bool UTheOneBlueprintFunctionLibrary::CanItemDropOnCharacterBagSlot(int32 InSlot
 		case ETheOneCharacterBagSlotType::MainHand:
 			return FindRow->PropType == ETheOnePropType::Weapon;
 		case ETheOneCharacterBagSlotType::OffHand:
-			return (FindRow->PropType == ETheOnePropType::Weapon && FindRow->bTwoHanded) || FindRow->PropType == ETheOnePropType::Shield || FindRow->PropType == ETheOnePropType::Consumable;
+			return (FindRow->PropType == ETheOnePropType::Weapon && (FindRow->WeaponType == ETheOneWeaponType::TwoHandMelee || FindRow->WeaponType == ETheOneWeaponType::TwoHandRange)) || FindRow->PropType == ETheOnePropType::Shield || FindRow->PropType == ETheOnePropType::Consumable;
 		case ETheOneCharacterBagSlotType::Head:
 			return FindRow->PropType == ETheOnePropType::Head;
 		case ETheOneCharacterBagSlotType::Cloth:
@@ -791,5 +792,45 @@ void UTheOneBlueprintFunctionLibrary::CloseImportantUI(const UObject* WorldConte
 {
 	auto TheOneGI = Cast<UTheOneGameInstance>(UGameplayStatics::GetGameInstance(WorldContextObject));
 	TheOneGI->UIRoot->CloseImportantUI(InUI);
+}
+
+int UTheOneBlueprintFunctionLibrary::GetSurroundingEnemyCount(AActor* InActor)
+{
+	auto HexGrid = GetHexGrid(InActor);
+	if (HexGrid == nullptr)
+	{
+		return 0;
+	}
+
+	if (!InActor->Implements<UInHexActorInterface>())
+	{
+		return 0;
+	}
+	
+	ETheOneCamp Camp = IInHexActorInterface::Execute_GetCamp(InActor);
+
+	auto InHexInterface = Cast<IInHexActorInterface>(InActor);
+	auto SurroundingHexes = HexGrid->GetRangeCoords(InHexInterface->GetCurrentHexCoord(), 1, true);
+	int Count = 0;
+	for (const auto& HexCoord : SurroundingHexes)
+	{
+		const auto& HexTile = HexGrid->GetHexTile(HexCoord);
+		if (HexTile.HasActor())
+		{
+			if (HexTile.StandingActor->Implements<UInHexActorInterface>() && HexTile.StandingActor->Implements<UTheOneBattleInterface>())
+			{
+				auto TileActorCamp = IInHexActorInterface::Execute_GetCamp(HexTile.StandingActor.Get());
+				auto IsStun = ITheOneBattleInterface::Execute_IsStun(HexTile.StandingActor.Get());
+				auto WeaponType = ITheOneBattleInterface::Execute_GetWeaponType(HexTile.StandingActor.Get());
+				bool WeaponCanSurround = WeaponType == ETheOneWeaponType::OneHandMelee || WeaponType == ETheOneWeaponType::TwoHandMelee;
+				if (TileActorCamp != Camp && !IsStun && WeaponCanSurround)
+				{
+					Count++;
+				}
+			}
+		}
+	}
+
+	return Count;
 }
 

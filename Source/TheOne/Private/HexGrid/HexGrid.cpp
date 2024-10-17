@@ -179,7 +179,7 @@ void AHexGrid::CreateGrid()
 				{
 					continue;
 				}
-
+				
 				RdHeightAreaCoords.AddUnique(Coord);
 			}
 		}
@@ -294,8 +294,10 @@ void AHexGrid::AddTile(const FRotator& Offset,const FRandomStream& RandomStream,
 		case EHTileHeightRandomType::RDHeightArea:
 			if (RdHeightAreaCoords.Contains(CCoord))
 			{
+				// 随机一个高度
+				Height = RandomStream.RandRange(TileConfig.MinHeight + 1, TileConfig.MaxHeight);
 				// 这里是高地
-				Height = TileConfig.MaxHeight;
+				// Height = TileConfig.MaxHeight;
 			}
 			break;
 	}

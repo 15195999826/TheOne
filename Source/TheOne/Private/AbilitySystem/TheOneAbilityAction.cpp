@@ -138,6 +138,21 @@ void FTheOneAbilityAction::DoActionDamageInternal(AActor* SourceActor, AActor* T
 	EffectContext.AddSourceObject(SourceActor);
 	const auto SpecHandle = SourceASC->MakeOutgoingSpec(GetDefault<UTheOneGeneralSettings>()->DamageEffect, 1, EffectContext);
 	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, ActionData.DamageTag, InDamage);
+	if (ActionData.DamageTag == TheOneGameplayTags::SetByCaller_Damage_Melee)
+	{
+		int Surrounded = UTheOneBlueprintFunctionLibrary::GetSurroundingEnemyCount(TargetActor);
+
+		if (Surrounded > 1)
+		{
+			// 每个包围目标的单位提供5点近战水平
+			UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Damage_SurrondExtra, Surrounded * 5);
+		}
+		else
+		{
+			UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, TheOneGameplayTags::SetByCaller_Damage_SurrondExtra, 0);
+		}
+	}
+	
 	// Add Attack Position Dynamic Tag
 	FGameplayTag AttackPositionTag;
 	if (!ActionData.DamagePositionTag.IsValid())
@@ -145,7 +160,13 @@ void FTheOneAbilityAction::DoActionDamageInternal(AActor* SourceActor, AActor* T
 		// 随机一个位置
 		auto RandomStream = SourceActor->GetWorld()->GetSubsystem<UTheOneContextSystem>()->Battle->GetRandomStream();
 		auto RandomValue = RandomStream.FRand();
-		if (RandomValue < 0.5f)
+		float HitHeadRate = 0.f;
+		if (SourceASC)
+		{
+			HitHeadRate = SourceASC->GetNumericAttribute(UTheOneAttributeSet::GetHeadshotRateAttribute());
+		}
+		
+		if (RandomValue > HitHeadRate)
 		{
 			AttackPositionTag = TheOneGameplayTags::SetByCaller_DamagePosition_Body;
 		}
@@ -164,7 +185,7 @@ void FTheOneAbilityAction::DoActionDamageInternal(AActor* SourceActor, AActor* T
 	// Todo: 增加Tag， 是否正在使用ATK计算伤害， 是的话才使用公式
 	if (IsUseATK)
 	{
-		SpecHandle.Data.Get()->AddDynamicAssetTag(TheOneGameplayTags::CalcByATK);
+		SpecHandle.Data.Get()->AddDynamicAssetTag(TheOneGameplayTags::Damage_Calc_ByATK);
 	}
 
 	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());

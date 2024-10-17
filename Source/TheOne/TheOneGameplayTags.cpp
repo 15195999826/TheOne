@@ -10,7 +10,7 @@
 #define LOCTEXT_NAMESPACE "TheOneGameplayTags"
 namespace TheOneGameplayTags
 {
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(CalcByATK, "CalcByATK", "The attribute is calculated by the ATK attribute.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_Calc_ByATK, "Damage.Calc.ByATK", "Damage calculation is based on attack power.");
 	
 	// Vital Attribute Tags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_MaxHealth, "SetByCaller.Attribute.Vital.MaxHealth", "The maximum health of an entity.");
@@ -64,7 +64,6 @@ namespace TheOneGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Vision, AttributeChineseTag14, "视野");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Vital_Age, AttributeChineseTag15, "年龄");
 	
-
 	// Runtime Attribute Tags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Level, "SetByCaller.Attribute.Runtime.Level", "The level of an entity.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Attribute_Runtime_Health, "SetByCaller.Attribute.Runtime.Health", "The current health of an entity.");
@@ -116,7 +115,6 @@ namespace TheOneGameplayTags
 		{SetByCaller_Attribute_Runtime_Energy, LOCTEXT("Energy", "体力")},
 		{SetByCaller_Attribute_Runtime_ActionPoint, LOCTEXT("ActionPoint", "行动点数")},
 	};
-	
 
 	const TMap<FGameplayTag, TFunction<FGameplayAttribute()>> Tag2Attribute = {
 		{SetByCaller_Attribute_Vital_MaxHealth, [](){return UTheOneLifeAttributeSet::GetMaxHealthAttribute();}},
@@ -137,6 +135,7 @@ namespace TheOneGameplayTags
 	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Melee, "SetByCaller.Damage.Melee", "SetByCaller tag used by physical damage gameplay effects.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_Range, "SetByCaller.Damage.Range", "SetByCaller tag used by magical damage gameplay effects.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage_SurrondExtra, "SetByCaller.Damage.SurrondExtra", "SetByCaller tag used by extra damage gameplay effects.");
 	
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ActionPoint0, "Ability.ActionPoint0", "Action Point 0");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ActionPoint1, "Ability.ActionPoint1", "Action Point 1");

@@ -4,6 +4,7 @@
 #include "Game/TheOneBattle.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "TheOneBlueprintFunctionLibrary.h"
 #include "AbilitySystem/TheOneAttributeSet.h"
 #include "AbilitySystem/TheOneLifeAttributeSet.h"
 #include "AbilitySystem/Abilities/TheOneGeneralGA.h"
@@ -111,7 +112,7 @@ void ATheOneBattle::OnEnterBattle()
 	TeamMoveToBattleArea(PlayerTeam, FRotator(0, 0, 0), PlayerStartRow, PlayerStartCol, GameMode, HexGrid, TeamSystem);
 	TeamMoveToBattleArea(EnemyTeam, FRotator(0, 180, 0), EnemyStartRow, EnemyStartCol, GameMode, HexGrid, TeamSystem);
 
-	// Todo: 临时给与所有人20点头部护甲和20点身体护甲, 
+	// Todo: 临时给与所有人20点头部护甲和20点身体护甲, 随机测试数据
 	for (const auto& Pair:InBattleCharacters)
 	{
 		auto Character = Pair.Value.Get();
@@ -121,6 +122,8 @@ void ATheOneBattle::OnEnterBattle()
 		LifeAttributeSet->SetMaxBodyArmor(20.f);
 		LifeAttributeSet->SetBodyArmor(20.f);
 		auto Attribute = Character->GetAttributeSet();
+		// 随机爆头率0，1
+		Attribute->SetHeadshotRate(FMath::RandRange(0.f, 1.f));
 		// 20~25随机最小攻击力， 25~30随机最大攻击力
 		Attribute->SetMinAttack(FMath::RandRange(20.f, 25.f));
 		Attribute->SetMaxAttack(FMath::RandRange(25.f, 30.f));
@@ -275,6 +278,8 @@ void ATheOneBattle::OnBattleStageChanged_Implementation()
 				}
 			}
 			break;
+		case ETheOneBattleStage::GameOver:
+			break;
 	}
 }
 
@@ -356,6 +361,8 @@ void ATheOneBattle::NextRound()
 	
 		BattleContext.ActionQueue.Add(Character);
 	}
+
+	UTheOneBlueprintFunctionLibrary::RandomShuffle(BattleContext.ActionQueue, GetRandomStream());
 
 	// 根据速度Sort
 	BattleContext.ActionQueue.Sort([](const ATheOneCharacterBase& A, const ATheOneCharacterBase& B)
